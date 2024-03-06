@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-#####################################
-# Description of script functionality	#
-#  		#
-#####################################
+#############################################
+# Receives a longer RNA/DNA sequence and    #
+#  detects potentially functional siRNAs    #
+#  that could be derived from this sequence #
+#############################################
 
 #######################
 #######################
@@ -29,7 +30,7 @@
 
 
 def main():
-	
+	print('hi')
 
 #######################
 #######################
@@ -43,4 +44,3 @@ def main():
 ### starts main script ###
 ##########################
 main()
-
