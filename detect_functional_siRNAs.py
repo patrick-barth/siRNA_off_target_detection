@@ -25,6 +25,7 @@ args = parser.parse_args()
 ########################
 
 mammal_start_nuc_guide: List = ['A','T','U']
+mammal_start_nuc_pass:	List = ['C','G']
 
 ##########################################################################################################################################
 
@@ -38,13 +39,9 @@ mammal_start_nuc_guide: List = ['A','T','U']
 def main(sequence,rules):
 	sequence: Dict = SeqIO.parse(sequence,"fasta")
 	for entry in sequence:
+		# Retrieve all positions that have a valid start nucleotide for siRNA guiding strands
 		start_positions: List = determine_siRNA_starts(entry.seq,rules)
-		print(start_positions)
-		print(entry.seq)
-
-		
-			
-
+		# Check for all positions if the starting nucleotide for the siRNA passenger strand is correct
 
 #######################
 #######################
@@ -56,9 +53,9 @@ def determine_siRNA_starts(sequence,rules):
 	start_positions: List = []
 	# For mammals siRNAs start with an A or U at position 1 of the guide strand
 	if rules == 'mammal': 
-		start_positions = [idx for idx, item in enumerate(sequence.lower()) if item in mammal_start_nuc_guide] #TODO: fix position getting
-
-	return(start_positions)
+		for nuc in mammal_start_nuc_guide:
+			start_positions.append([idx for idx, item in enumerate(sequence.lower()) if nuc.lower() == item])
+	return(sum(start_positions,[]))
 
 
 
