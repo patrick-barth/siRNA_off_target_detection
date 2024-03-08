@@ -53,6 +53,8 @@ mammal_seed: Dict = {'nuc': 	['A','U'],
 def main(sequence,rules,output):
 	#Check if arguments are correct
 	check_parameters(rules)
+	
+	collect_records = []
 
 	sequence: Dict = SeqIO.parse(sequence,"fasta")
 	for entry in sequence:
@@ -68,20 +70,31 @@ def main(sequence,rules,output):
 		# Check if seed region is correct
 		start_positions: List = validate_seed_region(start_positions,entry.seq,rules)
 		# Extract siRNAs
-		collect_records = []
+		
 		for idx, pos in enumerate(start_positions):
 			seq = 'N' * siRNA_overhang_len if add_overhang_to_output else ''
 			seq += entry.seq[pos:pos+siRNA_len]
 			record = SeqRecord(
 				seq,
-				id="siRNA" + str(idx),
-				name="guide_siRNA" + str(idx),
-				description='Guide strand from siRNA Nr. "%s" from "%s" position "%s"' % (idx,entry.id,pos + 1)
+				id="guide_siRNA_" + entry.id + str(idx),
+				name="guide_siRNA_" + entry.id + str(idx),
+				description='Guide strand from siRNA Nr. %s from "%s" position %s' % (idx,entry.id,pos + 1)
 			)
 			collect_records.append(record)
-			#TODO: add passenger strand in if statement
-
-		SeqIO.write(collect_records, output, "fasta")
+			# Same for passenger strand if it's supposed to be provided in the output
+			if add_passenger_strand_to_output:
+				del seq
+				del record
+				seq = entry.seq[pos-siRNA_overhang_len:pos+siRNA_len-siRNA_overhang_len].complement()
+				seq += 'N' * siRNA_overhang_len if add_overhang_to_output else ''
+				record = SeqRecord(
+					seq,
+					id="passenger_siRNA_" + entry.id + str(idx),
+					name="passenger_siRNA_" + entry.id + str(idx),
+					description='Passenger strand from siRNA Nr. %s from "%s" position %s' % (idx,entry.id,pos + 1)
+				)
+				collect_records.append(record)
+	SeqIO.write(collect_records, output, "fasta")
 
 
 #######################
