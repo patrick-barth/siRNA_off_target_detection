@@ -7,7 +7,6 @@
 #############################################
 
 import argparse
-import os
 from typing import Dict, List
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -33,13 +32,14 @@ siRNA_len: 				int 	= 21
 siRNA_overhang_len:		int		= 2
 seed_start:				int 	= 2
 seed_end:				int		= 7
-mammal_start_nuc_guide: List 	= ['A','T','U']
+
+rules_allowed = ['mammal']
+
+mammal_start_nuc_guide: List 	= ['A','U']
 mammal_start_nuc_pass:	List 	= ['C','G']
-mammal_seed: Dict = {'nuc': 	['A','T','U'],
+mammal_seed: Dict = {'nuc': 	['A','U'],
 					 'count': 	4,
 					 'rule': 	'equal or more'}
-
-#TODO: Add check if args.rules is one of allowed terms (currently only mammal)
 
 ##########################################################################################################################################
 
@@ -51,12 +51,18 @@ mammal_seed: Dict = {'nuc': 	['A','T','U'],
 
 
 def main(sequence,rules,output):
+	#Check if arguments are correct
+	check_parameters(rules)
+
 	sequence: Dict = SeqIO.parse(sequence,"fasta")
 	for entry in sequence:
-		entry.seq = entry.seq.upper() #TODO: Change all T to U and write a short message to stdout
+		entry.seq = entry.seq.upper()
+
+		if 'T' in entry.seq:
+			print('Warning: ' + entry.id + ' contained one or several instances of the nucleotide T which have been switched to U')
+			entry.seq = entry.seq.transcribe()
 		# Retrieve all positions that have a valid start nucleotide for siRNA guiding strands
 		start_positions: List = determine_siRNA_starts(entry.seq,rules)
-		#TODO: Sort for starting positions
 		# Check for all positions if the starting nucleotide for the siRNA passenger strand is correct
 		start_positions: List = validate_siRNA_pas_start(start_positions,entry.seq,rules)
 		# Check if seed region is correct
@@ -83,6 +89,16 @@ def main(sequence,rules,output):
 ###    functions    ###
 #######################
 #######################
+# Print error message and exit script	
+def errx(message):
+    print(message)
+    exit(1)
+
+#Check if parameters are correct
+def check_parameters(rules):
+	if rules not in rules_allowed:
+		errx('Chosen rule \'' + rules + '\' not in allowed list of rules (' + ', '.join(rules_allowed) + ')')
+
 # Determines start positions of the guide strand of potential siRNAs
 def determine_siRNA_starts(sequence,rules):
 	start_positions: List = []
@@ -90,7 +106,10 @@ def determine_siRNA_starts(sequence,rules):
 	if rules == 'mammal': 
 		for nuc in mammal_start_nuc_guide:
 			start_positions.append([idx for idx, item in enumerate(sequence) if nuc == item and idx + siRNA_len + siRNA_overhang_len - 2 < len(sequence) and idx - 2 >= 0])
-	return(sum(start_positions,[]))
+	start_positions = sum(start_positions,[])
+	start_positions.sort()
+
+	return(start_positions)
 
 # Checks if passenger strand of potential siRNAs starts with correct nucleotide
 def validate_siRNA_pas_start(positions,sequence,rules):
