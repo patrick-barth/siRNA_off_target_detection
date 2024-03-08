@@ -63,37 +63,39 @@ def main(sequence,rules,output):
 		if 'T' in entry.seq:
 			print('Warning: ' + entry.id + ' contained one or several instances of the nucleotide T which have been switched to U')
 			entry.seq = entry.seq.transcribe()
-		# Retrieve all positions that have a valid start nucleotide for siRNA guiding strands
-		start_positions: List = determine_siRNA_starts(entry.seq,rules)
-		# Check for all positions if the starting nucleotide for the siRNA passenger strand is correct
-		start_positions: List = validate_siRNA_pas_start(start_positions,entry.seq,rules)
-		# Check if seed region is correct
-		start_positions: List = validate_seed_region(start_positions,entry.seq,rules)
-		# Extract siRNAs
-		
-		for idx, pos in enumerate(start_positions):
-			seq = 'N' * siRNA_overhang_len if add_overhang_to_output else ''
-			seq += entry.seq[pos:pos+siRNA_len]
-			record = SeqRecord(
-				seq,
-				id="guide_siRNA_" + entry.id + str(idx),
-				name="guide_siRNA_" + entry.id + str(idx),
-				description='Guide strand from siRNA Nr. %s from "%s" position %s' % (idx,entry.id,pos + 1)
-			)
-			collect_records.append(record)
-			# Same for passenger strand if it's supposed to be provided in the output
-			if add_passenger_strand_to_output:
-				del seq
-				del record
-				seq = entry.seq[pos-siRNA_overhang_len:pos+siRNA_len-siRNA_overhang_len].complement()
-				seq += 'N' * siRNA_overhang_len if add_overhang_to_output else ''
+		for strand in ['forward','reverse']:
+			sequence = entry.seq if strand == 'forward' else entry.seq.reverse_complement()
+			# Retrieve all positions that have a valid start nucleotide for siRNA guiding strands
+			start_positions: List = determine_siRNA_starts(sequence,rules)
+			# Check for all positions if the starting nucleotide for the siRNA passenger strand is correct
+			start_positions: List = validate_siRNA_pas_start(start_positions,sequence,rules)
+			# Check if seed region is correct
+			start_positions: List = validate_seed_region(start_positions,sequence,rules)
+			# Extract siRNAs
+			
+			for idx, pos in enumerate(start_positions):
+				seq = 'N' * siRNA_overhang_len if add_overhang_to_output else ''
+				seq += sequence[pos:pos+siRNA_len]
 				record = SeqRecord(
 					seq,
-					id="passenger_siRNA_" + entry.id + str(idx),
-					name="passenger_siRNA_" + entry.id + str(idx),
-					description='Passenger strand from siRNA Nr. %s from "%s" position %s' % (idx,entry.id,pos + 1)
+					id="guide_siRNA_" + strand + '_' + entry.id + '_' + str(idx),
+					name="guide_siRNA_" + strand + '_' + entry.id + '_' + str(idx),
+					description='Guide strand from siRNA Nr. %s from "%s" %s strand position %s' % (idx,entry.id,strand,pos + 1)
 				)
 				collect_records.append(record)
+				# Same for passenger strand if it's supposed to be provided in the output
+				if add_passenger_strand_to_output:
+					del seq
+					del record
+					seq = sequence[pos-siRNA_overhang_len:pos+siRNA_len-siRNA_overhang_len].complement()
+					seq += 'N' * siRNA_overhang_len if add_overhang_to_output else ''
+					record = SeqRecord(
+						seq,
+						id="passenger_siRNA_" + strand + '_' + entry.id + '_' + str(idx),
+						name="passenger_siRNA_" + strand + '_' + entry.id + '_' + str(idx),
+						description='Passenger strand from siRNA Nr. %s from "%s" %s strand position %s' % (idx,entry.id,strand,pos + 1)
+					)
+					collect_records.append(record)
 	SeqIO.write(collect_records, output, "fasta")
 
 
