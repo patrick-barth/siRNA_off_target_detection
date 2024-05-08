@@ -34,9 +34,9 @@ main() {
 	cp "$TMP_DIR"/ncbi_dataset/fetch.txt "$OUTPUT_DIR"/metadata
 	# Get md5sums
 	touch "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv > "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip > "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{[1-9]_genomic.fna,gff} > "$OUTPUT_DIR"/metadata/md5sum.tsv
+	md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{[1-9]_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
 }
 
 # Start main function
