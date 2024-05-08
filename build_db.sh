@@ -10,6 +10,9 @@ OUTPUT_DIR="./insect_genomes_database_$DATE/"
 SPREADSHEET_LINK="https://docs.google.com/spreadsheets/d/1RIiyyyTIbz6HRRbVrbnf56rNVvgsLUk3FSJ4xjt5c2k/export?format=csv"
 ID_COLUMN="assembly_ID"
 
+# TODO: Add hash to tmp directory
+# TODO: Add tests if directories already exist
+# TODO: Add argument to potentially not delete the tmp-directory
 
 
 
@@ -34,14 +37,14 @@ download_data() {
 	cp "$TMP_DIR"/ncbi_dataset/fetch.txt "$OUTPUT_DIR"/metadata
 	# Get md5sums
 	touch "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{*_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{*_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
 }
 
 generate_indexes() {
 	# Get all full genome fasta files
-	GENOMES_LIST=$(ll tmp/ncbi_dataset/data/**/*.fna | grep --invert-match "cds_from_genomic.fna" | rev | cut -d ' ' -f 1 | rev | tr '\n' ',')
+	GENOMES_LIST=$(ls -aHl tmp/ncbi_dataset/data/**/*.fna | grep --invert-match "cds_from_genomic.fna" | rev | cut -d ' ' -f 1 | rev | tr '\n' ',')
 	# Build bowtie1 index (used for short reads)
 	mkdir "$OUTPUT_DIR"/index_bowtie
 	bowtie-build $GENOMES_LIST "$OUTPUT_DIR"/index_bowtie/insect_genomes
