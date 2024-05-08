@@ -13,7 +13,7 @@ ID_COLUMN="assembly_ID"
 
 
 
-main() {
+download_data() {
 	mkdir $TMP_DIR
 	mkdir $OUTPUT_DIR
 	# Download spreadsheet as a CSV file
@@ -21,11 +21,11 @@ main() {
 	# Extract all assembly IDs from the corresponding column
 	GENOME_IDS=$(awk -v id_col="$ID_COLUMN" -F ',' 'NR>1 {printf $col" "} NR==1 {for(i=1; i<=NF; i++) if($i == id_col) col=i}' "$TMP_DIR"/insect_genomes_overview.csv)
 	# Download all genomes
-	##~/software/RefSeq_downloader/datasets download genome accession $GENOME_IDS --include gff3,cds,genome,seq-report --dehydrated --filename "$TMP_DIR"/insect_genomes.zip
+	~/software/RefSeq_downloader/datasets download genome accession $GENOME_IDS --include gff3,cds,genome,seq-report --dehydrated --filename "$TMP_DIR"/insect_genomes.zip
 	# unzip downloaded data 
-	##unzip "$TMP_DIR"/insect_genomes.zip -d "$TMP_DIR"
+	unzip "$TMP_DIR"/insect_genomes.zip -d "$TMP_DIR"
 	# Rehydrate datasets (needed due to download of large datasets)
-	##~/software/RefSeq_downloader/datasets rehydrate --directory "$TMP_DIR"
+	~/software/RefSeq_downloader/datasets rehydrate --directory "$TMP_DIR"
 	# Get important files
 	mkdir "$OUTPUT_DIR"/raw_data
 	mkdir "$OUTPUT_DIR"/metadata
@@ -36,8 +36,19 @@ main() {
 	touch "$OUTPUT_DIR"/metadata/md5sum.tsv
 	md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
 	md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
-	md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{[1-9]_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{*_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
 }
 
-# Start main function
-main
+generate_indexes() {
+	# Get all full genome fasta files
+	GENOMES_LIST=$(ll tmp/ncbi_dataset/data/**/*.fna | grep --invert-match "cds_from_genomic.fna" | rev | cut -d ' ' -f 1 | rev | tr '\n' ',')
+	# Build bowtie1 index (used for short reads)
+	mkdir "$OUTPUT_DIR"/index_bowtie
+	bowtie-build $GENOMES_LIST "$OUTPUT_DIR"/index_bowtie/insect_genomes
+}
+
+
+
+# Start functions
+#download_data
+generate_indexes
