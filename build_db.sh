@@ -17,15 +17,15 @@ download_data() {
 	mkdir $TMP_DIR
 	mkdir $OUTPUT_DIR
 	# Download spreadsheet as a CSV file
-	curl -L "$SPREADSHEET_LINK" > "$TMP_DIR"/insect_genomes_overview.csv
+	##curl -L "$SPREADSHEET_LINK" > "$TMP_DIR"/insect_genomes_overview.csv
 	# Extract all assembly IDs from the corresponding column
-	GENOME_IDS=$(awk -v id_col="$ID_COLUMN" -F ',' 'NR>1 {printf $col" "} NR==1 {for(i=1; i<=NF; i++) if($i == id_col) col=i}' "$TMP_DIR"/insect_genomes_overview.csv)
+	##GENOME_IDS=$(awk -v id_col="$ID_COLUMN" -F ',' 'NR>1 {printf $col" "} NR==1 {for(i=1; i<=NF; i++) if($i == id_col) col=i}' "$TMP_DIR"/insect_genomes_overview.csv)
 	# Download all genomes
-	~/software/RefSeq_downloader/datasets download genome accession $GENOME_IDS --include gff3,cds,genome,seq-report --dehydrated --filename "$TMP_DIR"/insect_genomes.zip
+	##~/software/RefSeq_downloader/datasets download genome accession $GENOME_IDS --include gff3,cds,genome,seq-report --dehydrated --filename "$TMP_DIR"/insect_genomes.zip
 	# unzip downloaded data 
-	unzip "$TMP_DIR"/insect_genomes.zip -d "$TMP_DIR"
+	##unzip "$TMP_DIR"/insect_genomes.zip -d "$TMP_DIR"
 	# Rehydrate datasets (needed due to download of large datasets)
-	~/software/RefSeq_downloader/datasets rehydrate --directory "$TMP_DIR"
+	##~/software/RefSeq_downloader/datasets rehydrate --directory "$TMP_DIR"
 	# Get important files
 	mkdir "$OUTPUT_DIR"/raw_data
 	mkdir "$OUTPUT_DIR"/metadata
@@ -50,5 +50,5 @@ generate_indexes() {
 
 
 # Start functions
-#download_data
+download_data
 generate_indexes
