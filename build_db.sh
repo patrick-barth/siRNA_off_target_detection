@@ -13,6 +13,7 @@ ID_COLUMN="assembly_ID"
 # TODO: Add hash to tmp directory
 # TODO: Add tests if directories already exist
 # TODO: Add argument to potentially not delete the tmp-directory
+# TODO: put unwanted tool outputs to /dev/null
 
 
 
