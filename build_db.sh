@@ -27,8 +27,8 @@ main() {
 	# Rehydrate datasets (needed due to download of large datasets)
 	##~/software/RefSeq_downloader/datasets rehydrate --directory "$TMP_DIR"
 	# Get important files
-	##mkdir "$OUTPUT_DIR"/raw_data
-	##mkdir "$OUTPUT_DIR"/metadata
+	mkdir "$OUTPUT_DIR"/raw_data
+	mkdir "$OUTPUT_DIR"/metadata
 	cp "$TMP_DIR"/insect_genomes.zip "$OUTPUT_DIR"/raw_data
 	cp "$TMP_DIR"/insect_genomes_overview.csv "$OUTPUT_DIR"/metadata
 	cp "$TMP_DIR"/ncbi_dataset/fetch.txt "$OUTPUT_DIR"/metadata
