@@ -17,7 +17,8 @@ from Bio.SeqRecord import SeqRecord
 parser = argparse.ArgumentParser()
 parser.add_argument('--sequence', 	'-s', type=str,	help='Sequence to derive siRNAs from')
 parser.add_argument('--rules',      '-r', type=str, default='mammal', help='Rules to determine siRNAs')
-parser.add_argument('--output', 	'-o', type=str,	help='Output file')
+parser.add_argument('--output_si', 	'-o', type=str,	help='Output file')
+parser.add_argument('--output_score','-u', type=str,help='output file for information on how well the siRNA is')
 args = parser.parse_args()
 
 ########################
