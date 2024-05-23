@@ -47,7 +47,7 @@ log.info """\
          .stripIndent()
 
 input_dsRNA     = Channel.fromPath( params.dsrna )
-                    .splitFasta(by:1)
+                    //.splitFasta(by:1)
 db = file(params.db).toAbsolutePath()
 
 workflow {
