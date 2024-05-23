@@ -27,7 +27,7 @@ process align_siRNAs {
 	path(db)
 
 	output:
-	path("${dsRNA.simpleName}_derived_siRNAs.fa"),	emit: siRNAs
+	path("${siRNAs.simpleName}_derived_siRNAs.fa"),	emit: siRNAs
 	path("${task.process}.version.txt"), 			emit: version
 
 	"""
