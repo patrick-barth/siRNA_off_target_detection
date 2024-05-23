@@ -9,7 +9,7 @@ process split_dsRNA {
 	path("${task.process}.version.txt"), 			emit: version
 
 	"""
-	python split_dsRNA_to_siRNAs.py \
+	split_dsRNA_to_siRNAs.py \
 		--sequence ${dsRNA} \
 		--rule mammal \
 		--output_si ${dsRNA.simpleName}_derived_siRNAs.fa \
