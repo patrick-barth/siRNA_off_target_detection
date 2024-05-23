@@ -11,7 +11,7 @@ include{
 include{
     split_dsRNA
     align_siRNAs
-} from './main_modules.nf'
+} from './modules/main_modules.nf'
 
 if ( params.help ) {
     help = """main.nf: A description of your script and maybe some examples of how
