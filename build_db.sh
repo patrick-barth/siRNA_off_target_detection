@@ -48,7 +48,7 @@ generate_indexes() {
 	GENOMES_LIST=$(ls -aHl tmp/ncbi_dataset/data/**/*.fna | grep --invert-match "cds_from_genomic.fna" | rev | cut -d ' ' -f 1 | rev | tr '\n' ',')
 	# Build bowtie1 index (used for short reads)
 	mkdir "$OUTPUT_DIR"/index_bowtie
-	bowtie-build --threads 8 $GENOMES_LIST "$OUTPUT_DIR"/index_bowtie/insect_genomes
+	bowtie-build --threads 1 $GENOMES_LIST "$OUTPUT_DIR"/index_bowtie/insect_genomes
 }
 
 
