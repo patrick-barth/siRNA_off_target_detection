@@ -1,5 +1,6 @@
 process split_dsRNA {
 	tag {dsRNA.baseName}
+	publishDir "${params.output_dir}/generated_siRNAs", mode: 'copy', pattern: "${dsRNA.simpleName}_derived_siRNAs.fa"
 
 	input:
 	path(dsRNA)
@@ -21,6 +22,7 @@ process split_dsRNA {
 
 process align_siRNAs {
 	tag {siRNAs.baseName}
+	publishDir "${params.output_dir}/raw_alignments", mode: 'copy', pattern: "${siRNAs.simpleName}_alignments.bam"
 
 	input:
 	path(siRNAs)
