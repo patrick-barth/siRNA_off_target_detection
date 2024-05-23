@@ -24,10 +24,10 @@ process align_siRNAs {
 
 	input:
 	path(siRNAs)
-	path(db)
+	val(db)
 
 	output:
-	path("${siRNAs.simpleName}_derived_siRNAs.fa"),	emit: siRNAs
+	path("${siRNAs.simpleName}_alignments.bam"),	emit: siRNAs
 	path("${task.process}.version.txt"), 			emit: version
 
 	"""
@@ -39,7 +39,7 @@ process align_siRNAs {
 		--threads ${task.cpus} \
 		--seed 0 \
 		--suppress 6 \
-		${siRNAs.simpleName}_alignments.bam
+		${siRNAs.simpleName}_alignments.bam > tmp_report.txt
 	
 	echo -e "${task.process}\tpython\t\$(python --version | rev | cut -d' ' -f1 | rev)" > ${task.process}.version.txt
 	"""
