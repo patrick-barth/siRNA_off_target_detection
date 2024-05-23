@@ -32,8 +32,9 @@ process align_siRNAs {
 
 	"""
 	bowtie \
-		-x ${db} \
-		-f ${siRNAs} \
+		-f \
+		${db} \
+		${siRNAs} \
 		--all \
 		--threads ${task.cpus} \
 		--seed 0 \
