@@ -10,7 +10,8 @@ include{
 
 include{
     split_dsRNA
-    align_siRNAs
+    extract_seed_regions
+    align_seed_siRNAs
 } from './modules/main_modules.nf'
 
 if ( params.help ) {
@@ -52,5 +53,6 @@ db = file(params.db).toAbsolutePath()
 
 workflow {
     split_dsRNA(input_dsRNA)
-    align_siRNAs(split_dsRNA.output.siRNAs, db)
+    extract_seed_regions(split_dsRNA.output.siRNAs)
+    align_seed_siRNAs(extract_seed_regions.output.seed_regions, db)
 }
