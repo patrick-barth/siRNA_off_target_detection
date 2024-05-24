@@ -38,8 +38,8 @@ process align_siRNAs {
 		${db} \
 		${siRNAs} \
 		--all \
-		--seedlen 8 \ #TODO: change seed length here
-		--seedmms 2 \ # allowed mismatchers in seed region
+		--seedlen 8 \ 
+		--seedmms 2 \
 		--threads ${task.cpus} \
 		--seed 0 \
 		--suppress 6 \
