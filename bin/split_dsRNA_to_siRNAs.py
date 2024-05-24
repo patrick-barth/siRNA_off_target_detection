@@ -28,7 +28,7 @@ args = parser.parse_args()
 ###    parameters    ###
 ########################
 ########################
-add_overhang_to_output 			= True
+add_overhang_to_output 			= False
 
 siRNA_len: 				int 	= 21
 seed_start:				int 	= 2

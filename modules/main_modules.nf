@@ -30,7 +30,7 @@ process extract_seed_regions{
 	path("${siRNAs.simpleName}.seed_regions.fa"),	emit: seed_regions
 
 	"""
-	awk '{if (/^>/) print \$0 else print(substr(\$1,1,${params.length_seed}))}' ${siRNAs} \
+	awk '{if (/^>/) print \$0; else print(substr(\$1,1,${params.length_seed}))}' ${siRNAs} \
 		> ${siRNAs.simpleName}.seed_regions.fa 
 	"""
 }
