@@ -126,8 +126,8 @@ def split_sequences(sequence_entry,si_len,overhang_len,add_overhang,rule):
 	# Go through every possible position, disregarding the once that can not be due to missing overhang
 	for pos in range(overhang_len,len(seq)-si_len + 1):
 		# Overhang is always on 5'end. Ns will be added to show the overlap with the the other strand
-		seq_forward			= 'N' * overhang_len + seq[pos:pos+si_len] if add_overhang else + seq[pos:pos+si_len]
-		seq_reverse			= 'N' * overhang_len + seq[pos - overhang_len:pos + si_len - overhang_len].reverse_complement() if add_overhang else + seq[pos - overhang_len:pos + si_len - overhang_len].reverse_complement()
+		seq_forward			= 'N' * overhang_len + seq[pos:pos+si_len] if add_overhang else seq[pos:pos+si_len]
+		seq_reverse			= 'N' * overhang_len + seq[pos - overhang_len:pos + si_len - overhang_len].reverse_complement() if add_overhang else seq[pos - overhang_len:pos + si_len - overhang_len].reverse_complement()
 		forward_positions	= str(pos) + '-' + str(pos + si_len)
 		reverse_positions	= str(pos - overhang_len) + '-' + str(pos + si_len - overhang_len)
 		si_score_forward = validate_siRNA(seq_forward,overhang_len,rule)
