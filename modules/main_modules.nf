@@ -38,7 +38,7 @@ process align_siRNAs {
 		${db} \
 		${siRNAs} \
 		--all \
-		--seedlen 8 \ 
+		--seedlen 8 \
 		--seedmms 2 \
 		--threads ${task.cpus} \
 		--seed 0 \
