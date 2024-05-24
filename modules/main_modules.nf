@@ -20,7 +20,22 @@ process split_dsRNA {
 	"""
 }
 
-process align_siRNAs {
+process extract_seed_regions{
+	tag {siRNAs.baseName}
+
+	input:
+	path(siRNAs)
+
+	output:
+	path("${siRNAs.simpleName}.seed_regions.fa"),	emit: seed_regions
+
+	"""
+	awk '{if (/^>/) print \$0 else print(substr(\$1,1,${params.length_seed}))}' ${siRNAs} \
+		> ${siRNAs.simpleName}.seed_regions.fa 
+	"""
+}
+
+process align_seed_siRNAs {
 	tag {siRNAs.baseName}
 	publishDir "${params.output_dir}/raw_alignments", mode: 'copy', pattern: "${siRNAs.simpleName}_alignments.bam"
 
@@ -38,8 +53,7 @@ process align_siRNAs {
 		${db} \
 		${siRNAs} \
 		--all \
-		--seedlen 8 \
-		--seedmms 2 \
+		--v 2 \
 		--threads ${task.cpus} \
 		--seed 0 \
 		--suppress 6 \
