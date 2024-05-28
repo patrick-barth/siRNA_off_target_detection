@@ -50,9 +50,9 @@ process align_siRNAs {
 	"""
 	bowtie \
 		-f \
+		--all \
 		${db} \
 		${siRNAs} \
-		--all \
 		--v ${params.max_mismatches} \
 		--threads ${task.cpus} \
 		--seed 0 \
