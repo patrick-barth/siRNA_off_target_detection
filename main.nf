@@ -53,5 +53,5 @@ db = file(params.db).toAbsolutePath()
 
 workflow {
     split_dsRNA(input_dsRNA)
-    align_siRNAs(split_dsRNA.output.seed_regions, db)
+    align_siRNAs(split_dsRNA.output.siRNAs, db)
 }
