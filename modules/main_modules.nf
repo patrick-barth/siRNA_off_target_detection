@@ -35,7 +35,7 @@ process extract_seed_regions{
 	"""
 }
 
-process align_seed_siRNAs {
+process align_siRNAs {
 	tag {siRNAs.baseName}
 	publishDir "${params.output_dir}/raw_alignments", mode: 'copy', pattern: "${siRNAs.simpleName}_alignments.bam"
 
@@ -44,7 +44,7 @@ process align_seed_siRNAs {
 	val(db)
 
 	output:
-	path("${siRNAs.simpleName}_alignments.bam"),	emit: siRNAs
+	path("${siRNAs.simpleName}_alignments.bam"),	emit: aligned_siRNAs
 	path("${task.process}.version.txt"), 			emit: version
 
 	"""
@@ -53,7 +53,7 @@ process align_seed_siRNAs {
 		${db} \
 		${siRNAs} \
 		--all \
-		--v 2 \
+		--v ${params.max_mismatches} \
 		--threads ${task.cpus} \
 		--seed 0 \
 		--suppress 6 \
