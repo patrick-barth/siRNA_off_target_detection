@@ -29,6 +29,7 @@ args = parser.parse_args()
 ########################
 ########################
 add_overhang_to_output 			= False
+extended_header_description		= False
 
 siRNA_len: 				int 	= 21
 seed_start:				int 	= 2
@@ -90,12 +91,18 @@ def main(sequence,rule,output_si,overhang_len):
 			# Checks the probability of an siRNA being valid
 
 			# Write fasta entries for potential siRNAs
-			collected_potential_siRNAs.append( SeqRecord(siRNA['seq_forward'],
+			if extended_header_description:
+				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_forward'],
 									id=siRNA['origin_id'] + '_forward_' + str(siRNA['count']),
 									description='siRNA generated from ' + siRNA['origin_id'] + '\'s forward strand position ' + siRNA['pos_forward'] + ", siRNA score: " + str(siRNA['si_score_forward'])))
-			collected_potential_siRNAs.append( SeqRecord(siRNA['seq_reverse'],
+				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_reverse'],
 									id=siRNA['origin_id'] + '_reverse_' + str(siRNA['count']),
 									description='siRNA generated from ' + siRNA['origin_id'] + '\'s reverse strand position ' + siRNA['pos_reverse'] + ", siRNA score: " + str(siRNA['si_score_reverse'])))
+			else:
+				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_forward'],
+									id=siRNA['origin_id'] + '_forward_' + str(siRNA['count'])))
+				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_reverse'],
+									id=siRNA['origin_id'] + '_reverse_' + str(siRNA['count'])))
 			
 	SeqIO.write(collected_potential_siRNAs,output_si,'fasta')
 
