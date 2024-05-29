@@ -100,9 +100,11 @@ def main(sequence,rule,output_si,overhang_len):
 									description='siRNA generated from ' + siRNA['origin_id'] + '\'s reverse strand position ' + siRNA['pos_reverse'] + ", siRNA score: " + str(siRNA['si_score_reverse'])))
 			else:
 				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_forward'],
-									id=siRNA['origin_id'] + '_forward_' + str(siRNA['count'])))
+									id=siRNA['origin_id'] + '_forward_' + str(siRNA['count']),
+									description=""))
 				collected_potential_siRNAs.append( SeqRecord(siRNA['seq_reverse'],
-									id=siRNA['origin_id'] + '_reverse_' + str(siRNA['count'])))
+									id=siRNA['origin_id'] + '_reverse_' + str(siRNA['count']),
+									description=""))
 			
 	SeqIO.write(collected_potential_siRNAs,output_si,'fasta')
 
