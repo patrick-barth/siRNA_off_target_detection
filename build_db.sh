@@ -89,16 +89,6 @@ download_data() {
 				}' ${GENOME_FILE} > temp_file.fa && mv temp_file.fa ${GENOME_FILE}
 				# Copy genome to collect fasta file
 				cat ${GENOME_FILE} >> ${PATH_COLLECTED_FASTA}
-				# Check if annotation is present
-				if [ -f "${DIR_CURRENT_ID}/genomic.gff" ]; then
-					echo "Annotation found for ${GENOME_ID_TMP}"
-					mv ${DIR_CURRENT_ID}/genomic.gff ${DIR_CURRENT_ID}/${GENOME_ID_TMP}.gff
-					# TODO: Dir needs to be adapted. Maybe put whole file generation to DB_build
-					echo -e "${GENOME_ID_TMP}\tTRUE\t$(realpath ${DIR_CURRENT_ID}/${GENOME_ID_TMP}.gff)" >> ${PATH_ANNOTATION_INFO}
-				else
-					echo "No annotation found for ${GENOME_ID_TMP}"
-					echo -e "${GENOME_ID_TMP}\tFALSE\tNA" >> ${PATH_ANNOTATION_INFO}
-				fi
 			else
 				echo "Genome file belonging to accession ${GENOME_ID_TMP} seems to missing"
 			fi
@@ -109,17 +99,7 @@ download_data() {
 	
 	
 	
-	# Get important files
-	##mkdir "$OUTPUT_DIR"/raw_data
-	##mkdir "$OUTPUT_DIR"/metadata
-	##cp "$TMP_DIR"/insect_genomes.zip "$OUTPUT_DIR"/raw_data
-	##cp "$TMP_DIR"/insect_genomes_overview.csv "$OUTPUT_DIR"/metadata
-	##cp "$TMP_DIR"/ncbi_dataset/fetch.txt "$OUTPUT_DIR"/metadata
-	# Get md5sums
-	##touch "$OUTPUT_DIR"/metadata/md5sum.tsv
-	##md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
-	##md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
-	##md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{*_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+
 
 
 generate_indexes() {
@@ -127,9 +107,15 @@ generate_indexes() {
 	# Get list of all groups in tmp dir as they were downloaded during download data 
 		# (list entries | filter for dirs | reverse | get first column (dir name) | reverse again | turn newline to space in order to get an array)
 	GROUPS_LIST=$(ls -l ${TMP_DIR} | grep "^d" | rev | cut -d ' ' -f 1 | rev | tr '\n' ' ')
+
+	# Generate file that contains paths to DBS
+	PATH_DB_INFO="${OUTPUT_DIR}/info_db_dirs.tsv"
+	touch ${PATH_DB_INFO}
+	echo -e "group\tpath" > ${PATH_DB_INFO}
+
 	# Go through all accessions of the current group
 	for CURRENT_GROUP in ${GROUPS_LIST[@]}; do
-		TMP_DIR_CURRENT_GROUP="${TMP_DIR}/${CURRENT_GROUP}"
+		TMP_DIR_CURRENT_GROUP="${TMP_DIR}/${CURRENT_GROUP}/ncbi_dataset/data"
 		OUTPUT_DIR_CURRENT_GROUP="${OUTPUT_DIR}/${CURRENT_GROUP}"
 		GENOMES_LIST=$(ls -l ${TMP_DIR_CURRENT_GROUP} | grep "^d" | rev | cut -d ' ' -f 1 | rev | tr '\n' ' ')
 		
@@ -146,26 +132,81 @@ generate_indexes() {
 		touch ${PATH_ANNOTATION_INFO}
 		echo -e "accession\tannotation\tpath" > ${PATH_ANNOTATION_INFO}
 
+		# Generate and prepare file to keep information about the presence of a CDS file. Might be redundant with annotation file
+		PATH_CDS_INFO="${OUTPUT_DIR_CURRENT_GROUP}/info_CDS_${CURRENT_GROUP}.tsv"
+		touch ${PATH_CDS_INFO}
+		echo -e "accession\tCDS\tpath" > ${PATH_CDS_INFO}
+
 		# Go through every accession
 		for CURRENT_ACCESSION in ${GENOMES_LIST[@]}; do
-			# TODO: Continue here:
-				# Copy part from download function regarding annotations
-				# Copy CDS and rename
-				# Copy collected fasta
-				# Get md5 checksum
-				# Build DB
+			TMP_DIR_CURRENT_ACCESSION="${TMP_DIR_CURRENT_GROUP}/${CURRENT_ACCESSION}"
+
+			# Check if annotation is present. If yes it will be renamed into the output dir
+			if [ -f "${TMP_DIR_CURRENT_ACCESSION}/genomic.gff" ]; then
+				echo "Annotation found for ${CURRENT_ACCESSION}"
+				FILE_ANNOTATION="${ANNOTATION_DIR}/${CURRENT_ACCESSION}.gff"
+				cp ${TMP_DIR_CURRENT_ACCESSION}/genomic.gff ${FILE_ANNOTATION}
+
+				echo -e "${CURRENT_ACCESSION}\tTRUE\t$(realpath ${FILE_ANNOTATION})" >> ${PATH_ANNOTATION_INFO}
+			else
+				echo "No annotation found for ${CURRENT_ACCESSION}"
+				echo -e "${CURRENT_ACCESSION}\tFALSE\tNA" >> ${PATH_ANNOTATION_INFO}
+			fi
+
+			# Do the same thing as above for the CDS file
+			if [ -f "${TMP_DIR_CURRENT_ACCESSION}/cds_from_genomic.fna" ]; then
+				echo "CDS found for ${CURRENT_ACCESSION}"
+				FILE_CDS="${CDS_DIR}/CDS_${CURRENT_ACCESSION}.fna"
+				cp ${TMP_DIR_CURRENT_ACCESSION}/cds_from_genomic.fna ${FILE_CDS}
+
+				echo -e "${CURRENT_ACCESSION}\tTRUE\t$(realpath ${FILE_CDS})" >> ${PATH_CDS_INFO}
+			else
+				echo "No CDS found for ${CURRENT_ACCESSION}"
+				echo -e "${CURRENT_ACCESSION}\tFALSE\tNA" >> ${PATH_CDS_INFO}
+			fi
+
+				
 		done
 		
+		# Copy fasta file containing all genome chromosomes of the current group
+		FILENAME_COLLECTED_GENOMES="genomes_collected_${CURRENT_GROUP}.fna"
+		FILE_COLLECTED_GENOMES="${TMP_DIR}/${CURRENT_GROUP}/${FILENAME_COLLECTED_GENOMES}"
+		OUTPUT_FILE_COLLECTED_GENOMES="${OUTPUT_DIR_CURRENT_GROUP}/${FILENAME_COLLECTED_GENOMES}"
+		if [ -f "${FILE_COLLECTED_GENOMES}" ]; then
+			echo "Copying file with collected genomes to output dir: ${FILENAME_COLLECTED_GENOMES})"
+			cp ${FILE_COLLECTED_GENOMES} ${OUTPUT_FILE_COLLECTED_GENOMES}
+		else
+			echo -e "Something went wrong with the collected genomes file of ${CURRENT_GROUP}.\nThis should be investigated by hand."
+		fi
+
+		# Build BLASTN DB
+		echo "Generating database for ${CURRENT_GROUP}"
+		DB_BASENAME="${DB_DIR}/${CURRENT_GROUP}"
+		makeblastdb -in ${OUTPUT_FILE_COLLECTED_GENOMES} -out ${DB_BASENAME} -title ${CURRENT_GROUP} -dbtype nucl
+
+		echo -e "${CURRENT_GROUP}\t${DB_BASENAME}" > ${PATH_DB_INFO}
+		
+
 	done
 
+	#TODO: Get md5 checksums
+	# Get important files
+	##mkdir "$OUTPUT_DIR"/raw_data
+	##mkdir "$OUTPUT_DIR"/metadata
+	##cp "$TMP_DIR"/insect_genomes.zip "$OUTPUT_DIR"/raw_data
+	##cp "$TMP_DIR"/insect_genomes_overview.csv "$OUTPUT_DIR"/metadata
+	##cp "$TMP_DIR"/ncbi_dataset/fetch.txt "$OUTPUT_DIR"/metadata
+	# Get md5sums
+	##touch "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$OUTPUT_DIR"/metadata/insect_genomes_overview.csv >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$OUTPUT_DIR"/raw_data/insect_genomes.zip >> "$OUTPUT_DIR"/metadata/md5sum.tsv
+	##md5sum "$TMP_DIR"/ncbi_dataset/data/GC{A,F}_*/*.{*_genomic.fna,gff} >> "$OUTPUT_DIR"/metadata/md5sum.tsv
 
-	# Build bowtie1 index (used for short reads)
-	mkdir "$OUTPUT_DIR"/index_bowtie
-	bowtie-build --threads 1 $GENOMES_LIST "$OUTPUT_DIR"/index_bowtie/insect_genomes
+
 }
 
 
 
 # Start functions
-##download_data
+download_data
 generate_indexes
