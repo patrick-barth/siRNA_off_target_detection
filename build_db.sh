@@ -320,7 +320,7 @@ generate_indexes() {
 		DB_BASENAME="${DB_DIR}/${CURRENT_GROUP}"
 		makeblastdb -in ${OUTPUT_FILE_COLLECTED_GENOMES} -out ${DB_BASENAME} -title ${CURRENT_GROUP} -dbtype nucl
 
-		echo -e "${CURRENT_GROUP}\t${DB_BASENAME}" > ${PATH_DB_INFO}
+		echo -e "${CURRENT_GROUP}\t${DB_BASENAME}" >> ${PATH_DB_INFO}
 		
 	done
 }
