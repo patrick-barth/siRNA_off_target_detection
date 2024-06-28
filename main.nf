@@ -49,9 +49,15 @@ log.info """\
 
 input_dsRNA     = Channel.fromPath( params.dsrna )
                     //.splitFasta(by:1)
-db = file(params.db).toAbsolutePath()
+db_base_dir = file(params.db_base_dir).toAbsolutePath()
+db_info = file(db_base_dir + "/info_db_dirs.tsv").toAbsolutePath()
+groups = Channel
+        .fromPath(db_info)
+        .splitCsv(header: true)
+        .map{ row -> set(row.group) }
+
 
 workflow {
     split_dsRNA(input_dsRNA)
-    align_siRNAs(split_dsRNA.output.siRNAs, db)
+    align_siRNAs(split_dsRNA.output.siRNAs, groups, db_base_dir)
 }
