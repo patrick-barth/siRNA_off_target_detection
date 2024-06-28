@@ -26,7 +26,7 @@ process align_siRNAs {
 
 	input:
 	path(siRNAs)
-	set val(group)
+	set val(group), path(db_path)
 	path(db_base_dir)
 
 	output:

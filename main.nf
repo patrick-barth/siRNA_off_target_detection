@@ -54,7 +54,7 @@ db_info = file(db_base_dir + "/info_db_dirs.tsv").toAbsolutePath()
 groups = Channel
         .fromPath(db_info)
         .splitCsv(header: true)
-        .map{ row -> set(row.group) }
+        .map{ row -> set(row.group, path(path)) }
 
 
 workflow {
