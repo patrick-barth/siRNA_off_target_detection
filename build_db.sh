@@ -29,8 +29,12 @@ INSECTBASE_LINK_END_CDS=".cds.fa"
 # TODO: Add argument to potentially not delete the tmp-directory
 # TODO: put unwanted tool outputs to /dev/null
 
+PATH_TO_INFORMATION="${TMP_DIR}/infos.tsv"
+
 mkdir ${TMP_DIR}
 mkdir ${TMP_DIR_GROUPS}
+touch ${PATH_TO_INFORMATION}
+echo -e "accession\tgroup\torigin\tannotation\tannotation_path\tCDS\tCDS_path" > ${PATH_TO_INFORMATION}
 
 download_data_ncbi() {
 	
@@ -93,6 +97,12 @@ download_data_ncbi() {
 
 		# Go through every genome
 		for GENOME_ID_TMP in ${GENOME_IDS[@]}; do
+			# Set variables for info file
+			ANNOTATION_FOUND='FALSE'
+			OUTPUT_ANNOTATION_RELATIVE='NA'
+			CDS_FOUND='FALSE'
+			OUTPUT_CDS_RELATIVE='NA'
+
 			# Generate variable for output dir files with changed names
 			TARGET_DIR="${DIR_GROUP_TMP}/${GENOME_ID_TMP}"
 			TARGET_GENOME="${DIR_GROUP_TMP}/${GENOME_ID_TMP}/${GENOME_ID_TMP}.genome.fa"
@@ -109,7 +119,7 @@ download_data_ncbi() {
 				# Modify genome file to add the accession to the first string of the header. This way they can be easily assigned in later steps
 				awk -v accession=${GENOME_ID_TMP} '{
 					if (/^>/) {
-						sub(/ /, "_" accession " ", $0)
+						sub(/ /, ":" accession " ", $0)
 					}; print $0
 				}' ${GENOME_FILE} > temp_file.fa && mv temp_file.fa ${TARGET_GENOME}
 				# Copy genome to collect fasta file
@@ -121,8 +131,17 @@ download_data_ncbi() {
 			# Check if an annotation file is present. If yes rename it
 			CURRENT_ANNOTATION_FILE="${DIR_CURRENT_ID}/genomic.gff"
 			if [ -f "${CURRENT_ANNOTATION_FILE}" ]; then
-				echo "Annotation found for ${GENOME_ID_TMP}"
-				cp ${CURRENT_ANNOTATION_FILE} ${TARGET_ANNOTATION}
+				# Check if there was an error with downloading the annotation file (first line is <!DOCTYPE html>)
+				if grep -q "^<!DOCTYPE html>" "${CURRENT_ANNOTATION_FILE}"; then
+					echo "Error in annotation file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>"
+					echo "File will be removed"
+					rm ${CURRENT_ANNOTATION_FILE}
+				else
+					echo "Annotation found for ${GENOME_ID_TMP}"
+					cp ${CURRENT_ANNOTATION_FILE} ${TARGET_ANNOTATION}
+					ANNOTATION_FOUND='TRUE'
+					OUTPUT_ANNOTATION_RELATIVE="./${current_group}/annotations/${GENOME_ID_TMP}.gff3"
+				fi
 			else
 				echo "No annotation found for ${GENOME_ID_TMP}"
 			fi
@@ -130,11 +149,22 @@ download_data_ncbi() {
 			# Check if CDS file is present. If yes, rename it
 			CURRENT_CDS_FILE="${DIR_CURRENT_ID}/cds_from_genomic.fna"
 			if [ -f "${CURRENT_CDS_FILE}" ]; then
-				echo "CDS found for ${GENOME_ID_TMP}"
-				cp ${CURRENT_CDS_FILE} ${TARGET_CDS}
+				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
+				if grep -q "^<!DOCTYPE html>" "${CURRENT_CDS_FILE}"; then
+					echo "Error in CDS file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>"
+					echo "File will be removed"
+					rm ${CURRENT_CDS_FILE}
+				else
+					echo "CDS found for ${GENOME_ID_TMP}"
+					cp ${CURRENT_CDS_FILE} ${TARGET_CDS}
+					CDS_FOUND='TRUE'
+					OUTPUT_CDS_RELATIVE="./${current_group}/cds/${GENOME_ID_TMP}.cds.fna"
+				fi
 			else
 				echo "No CDS found for ${GENOME_ID_TMP}"
 			fi
+
+			echo -e "${GENOME_ID_TMP}\t${current_group}\tNCBI\t${ANNOTATION_FOUND}\t${OUTPUT_ANNOTATION_RELATIVE}\t${CDS_FOUND}\t${OUTPUT_CDS_RELATIVE}" >> ${PATH_TO_INFORMATION}
 		done
 		echo -e "\n"
 	done
@@ -189,6 +219,12 @@ download_data_insectbase(){
 		PATH_COLLECTED_FASTA="${DIR_GROUP_TMP}/genomes_collected_${current_group}.fna"
 
 		for SPECIES in ${GENOME_IDS[@]}; do
+			# Set variables for info file
+			ANNOTATION_FOUND='FALSE'
+			OUTPUT_ANNOTATION_RELATIVE='NA'
+			CDS_FOUND='FALSE'
+			OUTPUT_CDS_RELATIVE='NA'
+
 			DIR_CURRENT_SPECIES="${DIR_GROUP_TMP}/${SPECIES}"
 
 			FILE_GENOME_DOWNLOAD="${DIR_CURRENT_SPECIES}/${SPECIES}${INSECTBASE_LINK_END_GENOME}"
@@ -220,16 +256,36 @@ download_data_insectbase(){
 			fi
 
 			if [ -f "${ANNOTATION_FILE}" ]; then
-				echo "Annotation found for ${SPECIES}"
+				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
+				if grep -q "^<!DOCTYPE html>" "${ANNOTATION_FILE}"; then
+					echo "Error in annotation file of ${SPECIES}: File begins with: <!DOCTYPE html>"
+					echo "File will be removed"
+					rm ${ANNOTATION_FILE}
+				else
+					echo "Annotation found for ${SPECIES}"
+					ANNOTATION_FOUND='TRUE'
+					OUTPUT_ANNOTATION_RELATIVE="./${current_group}/annotations/${SPECIES}.gff3"
+				fi
 			else
 				echo "No annotation found for ${SPECIES}"
 			fi
 
 			if [ -f "${CDS_FILE}" ]; then
-				echo "CDS found for ${SPECIES}"
+				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
+				if grep -q "^<!DOCTYPE html>" "${CDS_FILE}"; then
+					echo "Error in CDS file of ${SPECIES}: File begins with: <!DOCTYPE html>"
+					echo "File will be removed"
+					rm ${CDS_FILE}
+				else
+					echo "CDS found for ${SPECIES}"
+					CDS_FOUND='TRUE'
+					OUTPUT_CDS_RELATIVE="./${current_group}/cds/${SPECIES}.cds.fna"
+				fi
 			else
 				echo "No CDS found for ${SPECIES}"
 			fi
+
+			echo -e "${SPECIES}\t${current_group}\tinsect_base\t${ANNOTATION_FOUND}\t${OUTPUT_ANNOTATION_RELATIVE}\t${CDS_FOUND}\t${OUTPUT_CDS_RELATIVE}" >> ${PATH_TO_INFORMATION}
 		done
 		echo -e "\n"
 	done	
@@ -282,11 +338,12 @@ generate_indexes() {
 			CDS_FILE="${TMP_DIR_CURRENT_ACCESSION}/${CURRENT_ACCESSION}.cds.fa"
 
 			# Check if annotation is present. If yes it will be renamed into the output dir
+			# TODO: Check if file is correct (when file is missing a HTML report is downloaded)
 			if [ -f "${ANNOTATION_FILE}" ]; then
 				TARGET_FILE="${ANNOTATION_DIR}/${CURRENT_ACCESSION}.gff3"
 				cp ${ANNOTATION_FILE} ${TARGET_FILE}
 
-				echo -e "${CURRENT_ACCESSION}\tTRUE\t$(realpath ${TARGET_FILE})" >> ${PATH_ANNOTATION_INFO}
+				echo -e "${CURRENT_ACCESSION}\tTRUE\t./${CURRENT_GROUP}/annotations/${CURRENT_ACCESSION}.gff3" >> ${PATH_ANNOTATION_INFO}
 			else
 				echo -e "${CURRENT_ACCESSION}\tFALSE\tNA" >> ${PATH_ANNOTATION_INFO}
 			fi
@@ -296,7 +353,7 @@ generate_indexes() {
 				TARGET_FILE="${CDS_DIR}/${CURRENT_ACCESSION}.cds.fa"
 				cp ${CDS_FILE} ${TARGET_FILE}
 
-				echo -e "${CURRENT_ACCESSION}\tTRUE\t$(realpath ${TARGET_FILE})" >> ${PATH_CDS_INFO}
+				echo -e "${CURRENT_ACCESSION}\tTRUE\t./${CURRENT_GROUP}/cds/${CURRENT_ACCESSION}.cds.fa" >> ${PATH_CDS_INFO}
 			else
 				echo -e "${CURRENT_ACCESSION}\tFALSE\tNA" >> ${PATH_CDS_INFO}
 			fi
