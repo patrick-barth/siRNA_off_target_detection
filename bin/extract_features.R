@@ -42,7 +42,7 @@ group <- 'beetle'
 accession <- 'Adranes_taylori'
 # end tmp arguments
 
-annotation_info <- paste(dir_db,"/",group,"/info_annotation_",group,".tsv",sep='')
+availability_info <- paste(dir_db,"/infos.tsv",sep='')
 dir_output <- paste(dir_base,"/output/",sep='')
 
 
@@ -130,7 +130,7 @@ df <- data.frame(siRNA_name=character(),
                  alignment_length=numeric(),
                  matches=numeric(),
                  mismatches=numeric(),
-                 mismatch_locations=numeric())
+                 mismatch_locations=character())
 
 
 # Count number of entries 
@@ -157,9 +157,11 @@ for (accession in unique(edit_table$accession)) {
   current_entries <- edit_table[edit_table$accession == accession]
 
   for (row in 1:nrow(current_entries)) {
+    
     current_row <- current_entries[row,]
     # Extract the siRNA sequence belonging to the current entry
     siRNA_seq <- siRNA_sequences[current_row['query_id'],'seq']
+    
     # Check if the chromosome is present in the gff file
     if (current_row$ref_id %in% unique(gff$seqid)) {
       # Extract all features of the gff file that overlap with the alignment position
@@ -214,8 +216,41 @@ for (accession in unique(edit_table$accession)) {
                                     mismatches           = current_row$mismatches,
                                     mismatch_locations   = NA)) # TODO: get from both strings
         }
+      } else {
+        annotation_available <- TRUE
+        feature_id <- NA
+        feature_biotype <- NA
+        feature_product <- NA
+        feature_parent <- NA
+        feature_rna_type <- NA
+        feature_start <- NA
+        feature_end <- NA
+        feature_strand <- NA
+        
+        df <- rbind(df,data.frame(siRNA_name           = current_row$query_id,
+                                  siRNA_seq            = siRNA_seq,
+                                  number_hit           = entry_count,
+                                  annotation_available = annotation_available,
+                                  target_organism      = current_row$accession,
+                                  target_chromosome    = current_row$ref_id,
+                                  posistion_start      = current_row$ref_start,
+                                  position_end         = current_row$ref_end,
+                                  strand               = current_row$strand,
+                                  target_id            = feature_id,
+                                  target_rna_type      = feature_rna_type,
+                                  target_biotype       = feature_biotype,
+                                  target_parent        = feature_parent,
+                                  product              = feature_product,
+                                  feature_start        = feature_start,
+                                  feature_end          = feature_end,
+                                  feature_strand       = feature_strand,
+                                  alignment_length     = current_row$alignment_length,
+                                  matches              = current_row$matches,
+                                  mismatches           = current_row$mismatches,
+                                  mismatch_locations   = NA)) # TODO: get from both strings
       }
-      annotation_available <- TRUE
+    } else {
+      annotation_available <- FALSE
       feature_id <- NA
       feature_biotype <- NA
       feature_product <- NA
@@ -224,87 +259,33 @@ for (accession in unique(edit_table$accession)) {
       feature_start <- NA
       feature_end <- NA
       feature_strand <- NA
+      
+      df <- rbind(df,data.frame(siRNA_name           = current_row$query_id,
+                                siRNA_seq            = siRNA_seq,
+                                number_hit           = entry_count,
+                                annotation_available = annotation_available,
+                                target_organism      = current_row$accession,
+                                target_chromosome    = current_row$ref_id,
+                                posistion_start      = current_row$ref_start,
+                                position_end         = current_row$ref_end,
+                                strand               = current_row$strand,
+                                target_id            = feature_id,
+                                target_rna_type      = feature_rna_type,
+                                target_biotype       = feature_biotype,
+                                target_parent        = feature_parent,
+                                product              = feature_product,
+                                feature_start        = feature_start,
+                                feature_end          = feature_end,
+                                feature_strand       = feature_strand,
+                                alignment_length     = current_row$alignment_length,
+                                matches              = current_row$matches,
+                                mismatches           = current_row$mismatches,
+                                mismatch_locations   = NA)) # TODO: get from both strings
     }
+    entry_count = entry_count + 1
   }
 }
 
-for (row in 1:nrow(edit_table)) {
-  if(edit_table[row,"accession"] %in% names(annotation_list)){
-    if(edit_table[row,"ref_id"] %in% unique(gff[,"seqid"]) ){
-      if(nrow(tmp_gff) > 0){
-        for(entry in 1:nrow(tmp_gff)){
-          df <- rbind(df,data.frame(siRNA_name   = edit_table$query_id[row],
-                              siRNA_seq          = siRNA_seq,
-                              number_hit         = entry_count,
-                              annotation_available=TRUE,
-                              target_organism    = edit_table$accession[row],
-                              target_chromosome  = edit_table$ref_id[row],
-                              posistion_start    = edit_table$ref_start[row],
-                              position_end       = edit_table$ref_end[row],
-                              strand             = edit_table$strand[row],
-                              target_id          = feature_id,
-                              target_rna_type    = tmp_gff[entry,"type"],
-                              target_biotype     = feature_biotype,
-                              target_parent      = feature_parent,
-                              product            = feature_product,
-                              feature_start      = tmp_gff[entry,"start"],
-                              feature_end        = tmp_gff[entry,'end'],
-                              feature_strand     = tmp_gff[entry,'strand'],
-                              alignment_length   = edit_table$alignment_length[row],
-                              matches            = edit_table$matches[row],
-                              mismatches         = edit_table$mismatches[row],
-                              mismatch_locations = NA)) # TODO: get from both strings
-        }
-      } else {
-        df <- rbind(df,data.frame(siRNA_name   = edit_table$query_id[row],
-                                  siRNA_seq          = siRNA_seq,
-                                  number_hit         = entry_count,
-                                  annotation_available=TRUE,
-                                  target_organism    = edit_table$accession[row],
-                                  target_chromosome  = edit_table$ref_id[row],
-                                  posistion_start    = edit_table$ref_start[row],
-                                  position_end       = edit_table$ref_end[row],
-                                  strand             = edit_table$strand[row],
-                                  target_id          = NA,
-                                  target_rna_type    = NA,
-                                  target_biotype     = NA,
-                                  target_parent      = NA,
-                                  product            = NA,
-                                  feature_start      = NA,
-                                  feature_end        = NA,
-                                  feature_strand     = NA,
-                                  alignment_length   = edit_table$alignment_length[row],
-                                  matches            = edit_table$matches[row],
-                                  mismatches         = edit_table$mismatches[row],
-                                  mismatch_locations = NA)) # TODO: get from both strings
-      }
-    }
-    rm(gff)
-  } else {
-    df <- rbind(df,data.frame(siRNA_name   = edit_table$query_id[row],
-                              siRNA_seq          = siRNA_seq,
-                              number_hit         = entry_count,
-                              annotation_available=FALSE,
-                              target_organism    = edit_table$accession[row],
-                              target_chromosome  = edit_table$ref_id[row],
-                              posistion_start    = edit_table$ref_start[row],
-                              position_end       = edit_table$ref_end[row],
-                              strand             = edit_table$strand[row],
-                              target_id          = NA,
-                              target_rna_type    = NA,
-                              target_biotype     = NA,
-                              target_parent      = NA,
-                              product            = NA,
-                              feature_start      = NA,
-                              feature_end        = NA,
-                              feature_strand     = NA,
-                              alignment_length   = edit_table$alignment_length[row],
-                              matches            = edit_table$matches[row],
-                              mismatches         = edit_table$mismatches[row],
-                              mismatch_locations = NA)) # TODO: get from both strings
-  }
-  entry_count <- entry_count + 1
-}
 df_gene <- df[df$target_rna_type=="mRNA" & !is.na(df$target_rna_type=="mRNA"),]
 
 # remove annotations to open up RAM 
