@@ -246,7 +246,7 @@ download_data_insectbase(){
 				echo "Modifying genome ${SPECIES}"
 				awk -v accession=${SPECIES} '{
 					if (/^>/) {
-						sub(/ /, "_" accession " ", $0)
+						sub(/ /, ":" accession " ", $0)
 					}; print $0
 				}' ${GENOME_FILE} > temp_file.fa && mv temp_file.fa ${GENOME_FILE}
 				# Copy genome to collect fasta file
@@ -299,6 +299,7 @@ generate_indexes() {
 	GROUPS_LIST=$(ls -l ${TMP_DIR_GROUPS} | grep "^d" | rev | cut -d ' ' -f 1 | rev | tr '\n' ' ')
 
 	mkdir ${OUTPUT_DIR}
+	cp ${PATH_TO_INFORMATION} ${OUTPUT_DIR}
 
 	# Generate file that contains paths to DBS
 	PATH_DB_INFO="${OUTPUT_DIR}/info_db_dirs.tsv"
