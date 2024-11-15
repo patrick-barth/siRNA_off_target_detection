@@ -8,7 +8,7 @@
 #############################################
 
 import argparse
-from typing import Dict, List
+from typing import Dict
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord

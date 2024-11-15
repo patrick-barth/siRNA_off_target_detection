@@ -8,8 +8,7 @@ DATE=$(date '+%Y-%m-%d_%H-%M-%S')
 WORK_DIR=$(pwd)
 TMP_DIR="${WORK_DIR}/tmp"
 TMP_DIR_GROUPS="${TMP_DIR}/groups"
-##TMP_DIR_NCBI="${TMP_DIR}/NCBI"
-##TMP_DIR_INSECTBASE="${TMP_DIR}/insectBase"
+LOG_FILE="${TMP_DIR}/logs.txt"
 OUTPUT_DIR="${WORK_DIR}/insect_genomes_database_$DATE/"
 ##SPREADSHEET_LINK="https://docs.google.com/spreadsheets/d/1RIiyyyTIbz6HRRbVrbnf56rNVvgsLUk3FSJ4xjt5c2k/export?format=csv"
 ##SPREADSHEET_LINK="https://docs.google.com/spreadsheets/d/1YwQjEsfl1H3kDUFMwPjYQLgqeUrrrY0MBp0Q5n4NKhs/export?format=csv"
@@ -34,9 +33,12 @@ PATH_TO_INFORMATION="${TMP_DIR}/infos.tsv"
 mkdir ${TMP_DIR}
 mkdir ${TMP_DIR_GROUPS}
 touch ${PATH_TO_INFORMATION}
+touch ${LOG_FILE}
 echo -e "accession\tgroup\torigin\tannotation\tannotation_path\tCDS\tCDS_path" > ${PATH_TO_INFORMATION}
 
 download_data_ncbi() {
+
+	echo "Downloading data from NCBI" | tee -a ${LOG_FILE}
 	
 	DOWNLOAD_DIR_TMP="${TMP_DIR}/NCBI"
 	mkdir ${DOWNLOAD_DIR_TMP}
@@ -60,10 +62,10 @@ download_data_ncbi() {
 			DB_GROUPS_UNIQUE+=(${ELEMENT})
 		fi
 	done
-	echo "Groups found: ${DB_GROUPS_UNIQUE[@]}"
+	echo "Groups found: ${DB_GROUPS_UNIQUE[@]}" | tee -a ${LOG_FILE}
 	# Go through every group, download the genomes
 	for current_group in ${DB_GROUPS_UNIQUE[@]}; do
-		echo "Processing insect group ${current_group}"
+		echo "Processing insect group ${current_group}" | tee -a ${LOG_FILE}
 		# Extract all assembly IDs from the corresponding column which also belong to the group extracted previously
 		GENOME_IDS=$(awk -v id_col="${ID_COLUMN}" -v group_col="${GROUP_COLUMN}" -v current_group="${current_group}" -F ',' '
 			NR>1 {
@@ -115,7 +117,7 @@ download_data_ncbi() {
 			GENOME_FILE=$(ls ${DIR_CURRENT_ID}/${GENOME_ID_TMP}*.fna 2>/dev/null )
 			
 			if [ -f "${GENOME_FILE}" ]; then
-				echo "Modifying genome ${GENOME_ID_TMP}"
+				echo "Modifying genome ${GENOME_ID_TMP}" | tee -a ${LOG_FILE}
 				# Modify genome file to add the accession to the first string of the header. This way they can be easily assigned in later steps
 				awk -v accession=${GENOME_ID_TMP} '{
 					if (/^>/) {
@@ -125,7 +127,7 @@ download_data_ncbi() {
 				# Copy genome to collect fasta file
 				cat ${TARGET_GENOME} >> ${PATH_COLLECTED_FASTA}
 			else
-				echo "Genome file belonging to accession ${GENOME_ID_TMP} seems to missing"
+				echo "Genome file belonging to accession ${GENOME_ID_TMP} seems to missing" | tee -a ${LOG_FILE}
 			fi
 
 			# Check if an annotation file is present. If yes rename it
@@ -133,17 +135,17 @@ download_data_ncbi() {
 			if [ -f "${CURRENT_ANNOTATION_FILE}" ]; then
 				# Check if there was an error with downloading the annotation file (first line is <!DOCTYPE html>)
 				if grep -q "^<!DOCTYPE html>" "${CURRENT_ANNOTATION_FILE}"; then
-					echo "Error in annotation file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>"
-					echo "File will be removed"
+					echo "Error in annotation file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>" | tee -a ${LOG_FILE}
+					echo "File will be removed" | tee -a ${LOG_FILE}
 					rm ${CURRENT_ANNOTATION_FILE}
 				else
-					echo "Annotation found for ${GENOME_ID_TMP}"
+					echo "Annotation found for ${GENOME_ID_TMP}" | tee -a ${LOG_FILE}
 					cp ${CURRENT_ANNOTATION_FILE} ${TARGET_ANNOTATION}
 					ANNOTATION_FOUND='TRUE'
 					OUTPUT_ANNOTATION_RELATIVE="./${current_group}/annotations/${GENOME_ID_TMP}.gff3"
 				fi
 			else
-				echo "No annotation found for ${GENOME_ID_TMP}"
+				echo "No annotation found for ${GENOME_ID_TMP}" | tee -a ${LOG_FILE}
 			fi
 
 			# Check if CDS file is present. If yes, rename it
@@ -151,27 +153,27 @@ download_data_ncbi() {
 			if [ -f "${CURRENT_CDS_FILE}" ]; then
 				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
 				if grep -q "^<!DOCTYPE html>" "${CURRENT_CDS_FILE}"; then
-					echo "Error in CDS file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>"
-					echo "File will be removed"
+					echo "Error in CDS file of ${GENOME_ID_TMP}: File begins with: <!DOCTYPE html>" | tee -a ${LOG_FILE}
+					echo "File will be removed" | tee -a ${LOG_FILE}
 					rm ${CURRENT_CDS_FILE}
 				else
-					echo "CDS found for ${GENOME_ID_TMP}"
+					echo "CDS found for ${GENOME_ID_TMP}" | tee -a ${LOG_FILE}
 					cp ${CURRENT_CDS_FILE} ${TARGET_CDS}
 					CDS_FOUND='TRUE'
 					OUTPUT_CDS_RELATIVE="./${current_group}/cds/${GENOME_ID_TMP}.cds.fna"
 				fi
 			else
-				echo "No CDS found for ${GENOME_ID_TMP}"
+				echo "No CDS found for ${GENOME_ID_TMP}" | tee -a ${LOG_FILE}
 			fi
 
 			echo -e "${GENOME_ID_TMP}\t${current_group}\tNCBI\t${ANNOTATION_FOUND}\t${OUTPUT_ANNOTATION_RELATIVE}\t${CDS_FOUND}\t${OUTPUT_CDS_RELATIVE}" >> ${PATH_TO_INFORMATION}
 		done
-		echo -e "\n"
+		echo -e "\n" | tee -a ${LOG_FILE}
 	done
 }
 	
 download_data_insectbase(){
-	##mkdir ${TMP_DIR_INSECTBASE}
+	echo "Downloading data from insectBase" | tee -a ${LOG_FILE}
 	# Download spreadsheet as a CSV file
 	curl -L ${SPREADSHEET_LINK_INSECT_BASE} > ${TMP_DIR}/insect_genomes_overview_insectbase.csv
 	# Get all groups from the corresponding column
@@ -192,10 +194,10 @@ download_data_insectbase(){
 			DB_GROUPS_UNIQUE+=($element)
 		fi
 	done
-	echo "Groups found: ${DB_GROUPS_UNIQUE[@]}"
+	echo "Groups found: ${DB_GROUPS_UNIQUE[@]}" | tee -a ${LOG_FILE}
 	# Go through every group, download the genomes
 	for current_group in ${DB_GROUPS_UNIQUE[@]}; do
-		echo "Processing insect group ${current_group}"
+		echo "Processing insect group ${current_group}" | tee -a ${LOG_FILE}
 		# Extract all species names from the corresponding column which also belong to the group extracted previously and substitute spaces with underscores (_)
 		GENOME_IDS=$(awk -v species_col="${SPECIES_COLUMN}" -v group_col="${GROUP_COLUMN}" -v current_group="${current_group}" -F ',' '
 			NR>1 {
@@ -243,7 +245,7 @@ download_data_insectbase(){
 
 			# Go through every genome and check that the file actually exists
 			if [ -f "${GENOME_FILE}" ]; then
-				echo "Modifying genome ${SPECIES}"
+				echo "Modifying genome ${SPECIES}" | tee -a ${LOG_FILE}
 				awk -v accession=${SPECIES} '{
 					if (/^>/) {
 						sub(/ /, ":" accession " ", $0)
@@ -252,14 +254,14 @@ download_data_insectbase(){
 				# Copy genome to collect fasta file
 				cat ${GENOME_FILE} >> ${PATH_COLLECTED_FASTA}
 			else
-				echo "Genome file belonging to ${SPECIES} seems to missing"
+				echo "Genome file belonging to ${SPECIES} seems to missing" | tee -a ${LOG_FILE}
 			fi
 
 			if [ -f "${ANNOTATION_FILE}" ]; then
 				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
 				if grep -q "^<!DOCTYPE html>" "${ANNOTATION_FILE}"; then
-					echo "Error in annotation file of ${SPECIES}: File begins with: <!DOCTYPE html>"
-					echo "File will be removed"
+					echo "Error in annotation file of ${SPECIES}: File begins with: <!DOCTYPE html>" | tee -a ${LOG_FILE}
+					echo "File will be removed" | tee -a ${LOG_FILE}
 					rm ${ANNOTATION_FILE}
 				else
 					echo "Annotation found for ${SPECIES}"
@@ -267,22 +269,22 @@ download_data_insectbase(){
 					OUTPUT_ANNOTATION_RELATIVE="./${current_group}/annotations/${SPECIES}.gff3"
 				fi
 			else
-				echo "No annotation found for ${SPECIES}"
+				echo "No annotation found for ${SPECIES}" | tee -a ${LOG_FILE}
 			fi
 
 			if [ -f "${CDS_FILE}" ]; then
 				# Check if there was an error with downloading the CDS file (first line is <!DOCTYPE html>)
 				if grep -q "^<!DOCTYPE html>" "${CDS_FILE}"; then
-					echo "Error in CDS file of ${SPECIES}: File begins with: <!DOCTYPE html>"
-					echo "File will be removed"
+					echo "Error in CDS file of ${SPECIES}: File begins with: <!DOCTYPE html>" | tee -a ${LOG_FILE}
+					echo "File will be removed" | tee -a ${LOG_FILE}
 					rm ${CDS_FILE}
 				else
-					echo "CDS found for ${SPECIES}"
+					echo "CDS found for ${SPECIES}" | tee -a ${LOG_FILE}
 					CDS_FOUND='TRUE'
 					OUTPUT_CDS_RELATIVE="./${current_group}/cds/${SPECIES}.cds.fna"
 				fi
 			else
-				echo "No CDS found for ${SPECIES}"
+				echo "No CDS found for ${SPECIES}" | tee -a ${LOG_FILE}
 			fi
 
 			echo -e "${SPECIES}\t${current_group}\tinsect_base\t${ANNOTATION_FOUND}\t${OUTPUT_ANNOTATION_RELATIVE}\t${CDS_FOUND}\t${OUTPUT_CDS_RELATIVE}" >> ${PATH_TO_INFORMATION}
@@ -367,14 +369,14 @@ generate_indexes() {
 		FILE_COLLECTED_GENOMES="${TMP_DIR_GROUPS}/${CURRENT_GROUP}/${FILENAME_COLLECTED_GENOMES}"
 		OUTPUT_FILE_COLLECTED_GENOMES="${OUTPUT_DIR_CURRENT_GROUP}/${FILENAME_COLLECTED_GENOMES}"
 		if [ -f "${FILE_COLLECTED_GENOMES}" ]; then
-			echo "Copying file with collected genomes to output dir: ${FILENAME_COLLECTED_GENOMES}"
+			echo "Copying file with collected genomes to output dir: ${FILENAME_COLLECTED_GENOMES}" | tee -a ${LOG_FILE}
 			cp ${FILE_COLLECTED_GENOMES} ${OUTPUT_FILE_COLLECTED_GENOMES}
 		else
-			echo -e "Something went wrong with the collected genomes file of ${CURRENT_GROUP}.\nThis should be investigated manually."
+			echo -e "Something went wrong with the collected genomes file of ${CURRENT_GROUP}.\nThis should be investigated manually." | tee -a ${LOG_FILE}
 		fi
 
 		# Build BLASTN DB
-		echo "Generating database for ${CURRENT_GROUP}"
+		echo "Generating database for ${CURRENT_GROUP}" | tee -a ${LOG_FILE}
 		DB_BASENAME="${DB_DIR}/${CURRENT_GROUP}"
 		makeblastdb -in ${OUTPUT_FILE_COLLECTED_GENOMES} -out ${DB_BASENAME} -title ${CURRENT_GROUP} -dbtype nucl
 

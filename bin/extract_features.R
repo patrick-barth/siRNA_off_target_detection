@@ -37,8 +37,13 @@ extract_coding_sequences <- opt$get_coding_sequences
 minimum_matching_nucleotides <- opt$matching_nucleotides
 
 # tmp arguments
-dir_db <- "/home/patrick/tmp/insect_genomes_database_2024-07-04_17-23-13/"
+dir_db <- "/home/patrick/tmp/insect_genomes_database_2024-07-09_13-43-34/"
+alignments <- "/home/patrick/PhD/projects/small_projects/ledprona/ledprona_vs_beetle.tsv"
+sirnas <- "/home/patrick/PhD/projects/small_projects/ledprona/ledprona_siRNAs.fa"
 group <- 'beetle'
+regard_strandiness = TRUE
+extract_coding_sequences <- FALSE
+minimum_matching_nucleotides <- 16
 accession <- 'Adranes_taylori'
 # end tmp arguments
 
@@ -71,7 +76,6 @@ extract_locus_tag <- function(string,pattern) {
   }
 }
 
-#raw_table <- read.table(file = paste("/home/patrick/PhD/projects/download_data/GFP_vs_", organism_name, ".tsv", sep = ""),
 raw_table <- read.table(file = alignments,
                         header = FALSE,
                         col.names = c("query_id","ref_id","matches","mismatches","gaps",
@@ -79,10 +83,9 @@ raw_table <- read.table(file = alignments,
                                       "ref_start","ref_end","ref_seq","evalue"),
                         sep='\t')
 
-#annotation_info <- read.table(file = paste("/home/patrick/PhD/projects/download_data/info_annotation_", organism_name, ".tsv", sep=''),
-annotation_info <- read.table(file = paste(dir_db,"/",group,"/info_annotation_", group, ".tsv", sep=''),
-                                          header = TRUE,
-                                          sep='\t')
+availability_info <- read.table(file   = availability_info,
+                                header = TRUE,
+                                sep    ='\t')
 
 siRNA_sequences <- readDNAStringSet(sirnas)
 siRNA_names <- names(siRNA_sequences)
@@ -90,13 +93,15 @@ sequences <- paste(siRNA_sequences)
 siRNA_sequences <- data.frame(seq = sequences)
 row.names(siRNA_sequences) <- siRNA_names
 
-annotation_list <- list()
-for (row in 1:nrow(annotation_info)) {
-  if (annotation_info$annotation[row]) {
-    gff_tmp <- read.gff(paste(dir_db, '/', annotation_info$path[row], sep=''), na.strings = c("."),GFF3 = TRUE)
-    annotation_list[[ annotation_info$accession[row] ]] = gff_tmp
-  }
-}
+
+# Potentially delete
+#annotation_list <- list()
+#for (row in 1:nrow(availability_info)) {
+#  if (availability_info$annotation[row]) {
+#    gff_tmp <- read.gff(paste(dir_db, '/', annotation_info$path[row], sep=''), na.strings = c("."),GFF3 = TRUE)
+#    annotation_list[[ annotation_info$accession[row] ]] = gff_tmp
+#  }
+#}
 
 # no gaps in siRNAs
 edit_table <- raw_table[raw_table$gaps == 0,] 
@@ -136,31 +141,36 @@ df <- data.frame(siRNA_name=character(),
 # Count number of entries 
 entry_count <- 1
 
-tmp_accession <- unlist(strsplit(edit_table[row, "ref_id"], ":"))[1:2]
-edit_table['accession',] <- tmp_accession[2]
-edit_table['ref_id',] <- tmp_accession[1]
-rm(tmp_accession)
+
+edit_table[,'accession'] <- unlist(lapply(edit_table[, "ref_id"], function(x) {
+  unlist(strsplit(x, ":"))[2]
+}))
+edit_table[,'ref_id'] <- unlist(lapply(edit_table[, "ref_id"], function(x) {
+  unlist(strsplit(x, ":"))[1]
+}))
+
 edit_table <- edit_table[order(edit_table$accession),]
 
 
 for (accession in unique(edit_table$accession)) {
   # Get row of current accession
-  row_current_accession <- annotation_info[which(annotation_info$accession==accession),]
+  row_current_accession <- availability_info[which(availability_info$accession==accession),]
   # If the annotation info file says an annotation is present: Annotation is parsed
   if(row_current_accession$annotation){
-    gff <- read.gff(paste(dir_db, '/', row_current_accession$path, sep=''), na.strings = c('.'), GFF3 = TRUE)
+    gff <- read.gff(paste(dir_db, '/', row_current_accession$annotation_path, sep=''), na.strings = c('.'), GFF3 = TRUE)
   } else {
     gff <- FALSE
   }
-  
+  print(paste('Analyzing: ', accession, sep = ''))
   # Extract all entries belonging to the current accession
-  current_entries <- edit_table[edit_table$accession == accession]
+  current_entries <- edit_table[which(edit_table$accession == accession),]
 
   for (row in 1:nrow(current_entries)) {
     
     current_row <- current_entries[row,]
+    
     # Extract the siRNA sequence belonging to the current entry
-    siRNA_seq <- siRNA_sequences[current_row['query_id'],'seq']
+    siRNA_seq <- siRNA_sequences[current_row[1,'query_id'],'seq']
     
     # Check if the chromosome is present in the gff file
     if (current_row$ref_id %in% unique(gff$seqid)) {
@@ -168,10 +178,11 @@ for (accession in unique(edit_table$accession)) {
       gff_relevant_entries <- gff[(gff$start <= current_row$ref_end) &
                                   (gff$end >= current_row$ref_start) &
                                   (gff$seqid == current_row$ref_id),]
-      # Remove all entries of type region as they typically describe the wholew chromosome
+      
+      # Remove all entries of type region as they typically describe the whole chromosome
       gff_relevant_entries <- gff_relevant_entries[gff_relevant_entries$type != 'region',]
       # Check if entries got extracted
-      if(nrow(gff_relevant_entries > 0)){
+      if(nrow(gff_relevant_entries) > 0){
         for (gff_row in 1:nrow(gff_relevant_entries)) {
           current_gff_entry <- gff_relevant_entries[gff_row,]
           # If strandiness shall be considered then only siRNA aligning to the opposite strand of the feature are processed (as siRNA bind to the complement)
@@ -294,9 +305,7 @@ rm(annotation_info, annotation_list,siRNA_sequences)
 # Sort df by organism names to only load one genome at a time in order to preserve RAM
 occurences <- data.frame()
 if(extract_coding_sequences){
-  cds_info <- read.table(file = paste(dir_db,"/",group,"/info_CDS_", group, ".tsv", sep=''),
-                         header = TRUE,
-                         sep='\t')
+
   for (organism in unique(df$target_organism[df$annotation_available==TRUE])) {
     file_path_cds <- paste("/home/patrick/PhD/projects/download_data/", organism, '/cds_from_genomic.fna', sep='')
     tmp_cds_sequences <- readDNAStringSet(file_path_cds)
