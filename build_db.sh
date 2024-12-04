@@ -235,12 +235,14 @@ download_data_insectbase(){
 			CDS_FILE="${DIR_CURRENT_SPECIES}/${SPECIES}${INSECTBASE_LINK_END_CDS}"
 			mkdir ${DIR_CURRENT_SPECIES}
 			
-			# Download genome, annotation and CDS files
-			#TODO: Parallelize download
+			# Download genome, annotation and CDS files in parallel
 			echo "Downloading files for ${SPECIES}"
-			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_GENOME} -o ${FILE_GENOME_DOWNLOAD}
-			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_CDS} -o ${CDS_FILE}
-			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_ANNOTATION} -o ${ANNOTATION_FILE}
+			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_GENOME} -o ${FILE_GENOME_DOWNLOAD} &
+			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_CDS} -o ${CDS_FILE} &
+			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_ANNOTATION} -o ${ANNOTATION_FILE} &
+
+			# Waits for all downloads to be finished
+			wait
 			# unpack genome
 			tar -xjf ${FILE_GENOME_DOWNLOAD} -C ${DIR_CURRENT_SPECIES}
 
