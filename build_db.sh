@@ -236,12 +236,20 @@ download_data_insectbase(){
 			mkdir ${DIR_CURRENT_SPECIES}
 			
 			# Download genome, annotation and CDS files
+			#TODO: Parallelize download
 			echo "Downloading files for ${SPECIES}"
 			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_GENOME} -o ${FILE_GENOME_DOWNLOAD}
 			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_CDS} -o ${CDS_FILE}
 			curl -L ${INSECTBASE_LINK_START}${SPECIES}-${SPECIES}${INSECTBASE_LINK_END_ANNOTATION} -o ${ANNOTATION_FILE}
 			# unpack genome
 			tar -xjf ${FILE_GENOME_DOWNLOAD} -C ${DIR_CURRENT_SPECIES}
+
+			# Check if tar file contained a directory witht he genome instead of just the genome file.
+			#  If TRUE, then the file is moved to the current species directory
+			if [ -d ${DIR_CURRENT_SPECIES}/${SPECIES} ]; then
+				mv "${SPECIES}/${SPECIES}.genome.fa" ${GENOME_FILE}
+				rm -r ${SPECIES}
+			fi
 
 			# Go through every genome and check that the file actually exists
 			if [ -f "${GENOME_FILE}" ]; then
