@@ -246,9 +246,10 @@ download_data_insectbase(){
 			# Go through every genome and check that the file actually exists
 			if [ -f "${GENOME_FILE}" ]; then
 				echo "Modifying genome ${SPECIES}" | tee -a ${LOG_FILE}
+				# Modify genome file to add accession to first string of the header
 				awk -v accession=${SPECIES} '{
 					if (/^>/) {
-						sub(/ /, ":" accession " ", $0)
+						sub(/[ \t]/, ":" accession " ", $0)
 					}; print $0
 				}' ${GENOME_FILE} > temp_file.fa && mv temp_file.fa ${GENOME_FILE}
 				# Copy genome to collect fasta file
