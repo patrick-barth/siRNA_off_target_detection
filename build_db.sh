@@ -249,8 +249,8 @@ download_data_insectbase(){
 			# Check if tar file contained a directory witht he genome instead of just the genome file.
 			#  If TRUE, then the file is moved to the current species directory
 			if [ -d ${DIR_CURRENT_SPECIES}/${SPECIES} ]; then
-				mv "${SPECIES}/${SPECIES}.genome.fa" ${GENOME_FILE}
-				rm -r ${SPECIES}
+				mv "${DIR_CURRENT_SPECIES}/${SPECIES}/${SPECIES}.genome.fa" ${GENOME_FILE}
+				rm -r ${DIR_CURRENT_SPECIES}/${SPECIES}
 			fi
 
 			# Go through every genome and check that the file actually exists
