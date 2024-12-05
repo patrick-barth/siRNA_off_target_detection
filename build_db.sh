@@ -256,10 +256,18 @@ download_data_insectbase(){
 			# Go through every genome and check that the file actually exists
 			if [ -f "${GENOME_FILE}" ]; then
 				echo "Modifying genome ${SPECIES}" | tee -a ${LOG_FILE}
+				
 				# Modify genome file to add accession to first string of the header
+				## Additionally, all appearances of ':' are exchanged with '__COLON__'
 				awk -v accession=${SPECIES} '{
 					if (/^>/) {
-						sub(/[ \t]/, ":" accession " ", $0)
+						gsub(/:/, "__COLON__", $0)
+						if($0 !~ /[ \t]/){
+							sub(/$/, ":" accession)
+						} else {
+							sub(/[ \t]/, ":" accession " ", $0)
+						}
+						
 					}; print $0
 				}' ${GENOME_FILE} > temp_file.fa && mv temp_file.fa ${GENOME_FILE}
 				# Copy genome to collect fasta file
@@ -276,6 +284,16 @@ download_data_insectbase(){
 					rm ${ANNOTATION_FILE}
 				else
 					echo "Annotation found for ${SPECIES}"
+					# Change all appearances of ':' in the first column of valid gff entries with '__COLON__'
+					awk -v accession=${SPECIES} '
+					BEGIN {OFS="\t"}
+					{
+						# Only changes lines that do not start with an #
+						if($0 !~ /^#/){
+							gsub(/:/, "__COLON__", $1)
+						}
+						print $0
+					}' ${ANNOTATION_FILE} > temp_file2.fa && mv temp_file2.fa ${ANNOTATION_FILE}
 					ANNOTATION_FOUND='TRUE'
 					OUTPUT_ANNOTATION_RELATIVE="./${current_group}/annotations/${SPECIES}.gff3"
 				fi
