@@ -196,6 +196,7 @@ download_data_insectbase(){
 	done
 	echo "Groups found: ${DB_GROUPS_UNIQUE[@]}" | tee -a ${LOG_FILE}
 	# Go through every group, download the genomes
+	#TODO: make own tmp directory for every group
 	for current_group in ${DB_GROUPS_UNIQUE[@]}; do
 		echo "Processing insect group ${current_group}" | tee -a ${LOG_FILE}
 		# Extract all species names from the corresponding column which also belong to the group extracted previously and substitute spaces with underscores (_)
