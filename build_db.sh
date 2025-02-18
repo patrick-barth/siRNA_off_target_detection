@@ -107,9 +107,9 @@ download_data_ncbi() {
 
 			# Generate variable for output dir files with changed names
 			TARGET_DIR="${DIR_GROUP_TMP}/${GENOME_ID_TMP}"
-			TARGET_GENOME="${DIR_GROUP_TMP}/${GENOME_ID_TMP}/${GENOME_ID_TMP}.genome.fa"
-			TARGET_ANNOTATION="${DIR_GROUP_TMP}/${GENOME_ID_TMP}/${GENOME_ID_TMP}.gff3"
-			TARGET_CDS="${DIR_GROUP_TMP}/${GENOME_ID_TMP}/${GENOME_ID_TMP}.cds.fa"
+			TARGET_GENOME="${TARGET_DIR}/${GENOME_ID_TMP}.genome.fa"
+			TARGET_ANNOTATION="${TARGET_DIR}/${GENOME_ID_TMP}.gff3"
+			TARGET_CDS="${TARGET_DIR}/${GENOME_ID_TMP}.cds.fa"
 			mkdir ${TARGET_DIR}
 			# Get path of current accession
 			DIR_CURRENT_ID="${DOWNLOAD_DIR_TMP}/ncbi_dataset/data/${GENOME_ID_TMP}"
