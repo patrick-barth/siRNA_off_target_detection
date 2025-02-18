@@ -78,18 +78,24 @@ download_data_ncbi() {
 				}
 			}' ${TMP_DIR}/insect_genomes_overview_ncbi.csv)
 		
-		# Generate directory within tmp to download genomes
+		# Generate directory for download to get an own dir for every group
+		DOWNLOAD_DIR_GROUP_TMP=${DOWNLOAD_DIR_TMP}/${current_group}
+		if [ ! -d "${DOWNLOAD_DIR_GROUP_TMP}" ]; then
+			mkdir ${DOWNLOAD_DIR_GROUP_TMP}
+		fi
+
+		# Generate directory within tmp to collect all downloaded genomes
 		DIR_GROUP_TMP=${TMP_DIR_GROUPS}/${current_group}
 		if [ ! -d "${DIR_GROUP_TMP}" ]; then
 			mkdir ${DIR_GROUP_TMP}
 		fi
 
 		# Download genomes 
-		${PATH_TO_DATASETS}/datasets download genome accession ${GENOME_IDS} --include gff3,cds,genome,seq-report --dehydrated --filename ${DOWNLOAD_DIR_TMP}/insect_genomes.zip
+		${PATH_TO_DATASETS}/datasets download genome accession ${GENOME_IDS} --include gff3,cds,genome,seq-report --dehydrated --filename ${DOWNLOAD_DIR_GROUP_TMP}/insect_genomes.zip
 		# Unzip downloaded genomes
-		unzip ${DOWNLOAD_DIR_TMP}/insect_genomes.zip -d ${DOWNLOAD_DIR_TMP}
+		unzip ${DOWNLOAD_DIR_GROUP_TMP}/insect_genomes.zip -d ${DOWNLOAD_DIR_GROUP_TMP}
 		# Rehydrate downloaded genomes (necessary for bulk download to restore all files)
-		${PATH_TO_DATASETS}/datasets rehydrate --directory ${DOWNLOAD_DIR_TMP}
+		${PATH_TO_DATASETS}/datasets rehydrate --directory ${DOWNLOAD_DIR_GROUP_TMP}
 		
 		# Generate file to collect all reference genomes
 		PATH_COLLECTED_FASTA="${DIR_GROUP_TMP}/genomes_collected_${current_group}.fna"
@@ -112,7 +118,7 @@ download_data_ncbi() {
 			TARGET_CDS="${TARGET_DIR}/${GENOME_ID_TMP}.cds.fa"
 			mkdir ${TARGET_DIR}
 			# Get path of current accession
-			DIR_CURRENT_ID="${DOWNLOAD_DIR_TMP}/ncbi_dataset/data/${GENOME_ID_TMP}"
+			DIR_CURRENT_ID="${DOWNLOAD_DIR_GROUP_TMP}/ncbi_dataset/data/${GENOME_ID_TMP}"
 			# Get path of genome file
 			GENOME_FILE=$(ls ${DIR_CURRENT_ID}/${GENOME_ID_TMP}*.fna 2>/dev/null )
 			
