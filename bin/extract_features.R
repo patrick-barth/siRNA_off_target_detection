@@ -37,17 +37,18 @@ extract_coding_sequences <- opt$get_coding_sequences
 minimum_matching_nucleotides <- opt$matching_nucleotides
 
 # tmp arguments
-dir_db <- "/home/patrick/tmp/insect_genomes_database_2024-07-09_13-43-34/"
-alignments <- "/home/patrick/PhD/projects/small_projects/ledprona/ledprona_vs_beetle.tsv"
-sirnas <- "/home/patrick/PhD/projects/small_projects/ledprona/ledprona_siRNAs.fa"
+group <- 'hymenoptera'
 group <- 'beetle'
+dir_base <- paste("/home/patrick/PhD/projects/small_projects/ledprona/2025_02_18_ledprona","/",sep = '')
+dir_db <- paste("/home/patrick/PhD/projects/small_projects/ledprona/2025_02_18_ledprona/",sep = '')
+alignments <- paste("/home/patrick/PhD/projects/small_projects/ledprona/2025_02_18_ledprona/blast_results_ledprona_vs_",group,".tsv",sep = '')
+sirnas <- "/home/patrick/PhD/projects/small_projects/ledprona/ledprona_siRNAs.fa"
 regard_strandiness = TRUE
 extract_coding_sequences <- FALSE
-minimum_matching_nucleotides <- 16
-accession <- 'Adranes_taylori'
+minimum_matching_nucleotides <- 19
 # end tmp arguments
 
-availability_info <- paste(dir_db,"/infos.tsv",sep='')
+availability_info_path <- paste(dir_db,"/infos.tsv",sep='')
 dir_output <- paste(dir_base,"/output/",sep='')
 
 
@@ -83,7 +84,7 @@ raw_table <- read.table(file = alignments,
                                       "ref_start","ref_end","ref_seq","evalue"),
                         sep='\t')
 
-availability_info <- read.table(file   = availability_info,
+availability_info <- read.table(file   = availability_info_path,
                                 header = TRUE,
                                 sep    ='\t')
 
@@ -92,16 +93,6 @@ siRNA_names <- names(siRNA_sequences)
 sequences <- paste(siRNA_sequences)
 siRNA_sequences <- data.frame(seq = sequences)
 row.names(siRNA_sequences) <- siRNA_names
-
-
-# Potentially delete
-#annotation_list <- list()
-#for (row in 1:nrow(availability_info)) {
-#  if (availability_info$annotation[row]) {
-#    gff_tmp <- read.gff(paste(dir_db, '/', annotation_info$path[row], sep=''), na.strings = c("."),GFF3 = TRUE)
-#    annotation_list[[ annotation_info$accession[row] ]] = gff_tmp
-#  }
-#}
 
 # no gaps in siRNAs
 edit_table <- raw_table[raw_table$gaps == 0,] 
@@ -155,9 +146,18 @@ edit_table <- edit_table[order(edit_table$accession),]
 for (accession in unique(edit_table$accession)) {
   # Get row of current accession
   row_current_accession <- availability_info[which(availability_info$accession==accession),]
+  annotation_available <- FALSE
   # If the annotation info file says an annotation is present: Annotation is parsed
-  if(row_current_accession$annotation){
-    gff <- read.gff(paste(dir_db, '/', row_current_accession$annotation_path, sep=''), na.strings = c('.'), GFF3 = TRUE)
+  # //TODO: Currently only a short term fix. Problem is that some genomes don't get the genome ID pastet to the chromosome names
+  #           which makes this if fail (regarding first if statement)
+  if(!is.na(accession)){
+    if (row_current_accession$annotation){
+      gff <- read.gff(paste(dir_db, '/', row_current_accession$annotation_path, sep=''), na.strings = c('.'), GFF3 = TRUE)
+      annotation_available <- TRUE
+    } else {
+      gff <- FALSE
+    }
+    
   } else {
     gff <- FALSE
   }
@@ -195,7 +195,6 @@ for (accession in unique(edit_table$accession)) {
           attributes <- unlist(strsplit(current_gff_entry$attributes, ';'))
           
           # Get relevant gff information
-          annotation_available <- TRUE
           feature_id <- extract_attribute_info(attributes, 'ID')
           feature_biotype <- extract_attribute_info(attributes, 'biotype')
           feature_product <- extract_attribute_info(attributes, 'product')
@@ -209,6 +208,7 @@ for (accession in unique(edit_table$accession)) {
                                     siRNA_seq            = siRNA_seq,
                                     number_hit           = entry_count,
                                     annotation_available = annotation_available,
+                                    got_annotation_entry = TRUE,
                                     target_organism      = current_row$accession,
                                     target_chromosome    = current_row$ref_id,
                                     posistion_start      = current_row$ref_start,
@@ -228,7 +228,8 @@ for (accession in unique(edit_table$accession)) {
                                     mismatch_locations   = NA)) # TODO: get from both strings
         }
       } else {
-        annotation_available <- TRUE
+        annotation_available <- annotation_available
+        got_annotation_entry = FALSE
         feature_id <- NA
         feature_biotype <- NA
         feature_product <- NA
@@ -242,6 +243,7 @@ for (accession in unique(edit_table$accession)) {
                                   siRNA_seq            = siRNA_seq,
                                   number_hit           = entry_count,
                                   annotation_available = annotation_available,
+                                  got_annotation_entry = got_annotation_entry,
                                   target_organism      = current_row$accession,
                                   target_chromosome    = current_row$ref_id,
                                   posistion_start      = current_row$ref_start,
@@ -261,7 +263,8 @@ for (accession in unique(edit_table$accession)) {
                                   mismatch_locations   = NA)) # TODO: get from both strings
       }
     } else {
-      annotation_available <- FALSE
+      annotation_available <- annotation_available
+      got_annotation_entry = FALSE
       feature_id <- NA
       feature_biotype <- NA
       feature_product <- NA
@@ -275,6 +278,7 @@ for (accession in unique(edit_table$accession)) {
                                 siRNA_seq            = siRNA_seq,
                                 number_hit           = entry_count,
                                 annotation_available = annotation_available,
+                                got_annotation_entry = got_annotation_entry,
                                 target_organism      = current_row$accession,
                                 target_chromosome    = current_row$ref_id,
                                 posistion_start      = current_row$ref_start,
@@ -300,7 +304,7 @@ for (accession in unique(edit_table$accession)) {
 df_gene <- df[df$target_rna_type=="mRNA" & !is.na(df$target_rna_type=="mRNA"),]
 
 # remove annotations to open up RAM 
-rm(annotation_info, annotation_list,siRNA_sequences)
+#rm(annotation_info, annotation_list,siRNA_sequences)
 
 # Sort df by organism names to only load one genome at a time in order to preserve RAM
 occurences <- data.frame()
@@ -348,11 +352,76 @@ if(extract_coding_sequences){
 }
 
 df_gene <- df_gene[order(df_gene$target_organism, -df_gene$alignment_length),]
+row.names(df_gene) <- NULL
+#TODO: filter double entries from df -> Currently has an entry for every RNA type which multiplies hits as all parents are present
 
-write.table(df, file=paste(dir_output, 'results_GFP_vs_', group, '.tsv',sep = ""), quote=FALSE, sep='\t', col.names = TRUE, row.names = FALSE)
-write.table(df_gene, file=paste(dir_output,'genes_GFP_vs_', group, '.tsv',sep = ""), quote=FALSE, sep='\t', col.names = TRUE, row.names = FALSE)
+## Add english names together with familiy and subfamiliy to list
+ncbi_sheets <- read.table(file = paste(dir_base, 'insect_genomes_overview_ncbi.csv', sep = '/'),
+                        header = TRUE,
+                        sep=',')
+insectBase_sheets <- read.table(file = paste(dir_base, 'insect_genomes_overview_insectbase.csv', sep = '/'),
+                                header = TRUE,
+                                sep=',')
+
+# retrieve information from sheets document
+sheets_information <- lapply(1:nrow(df_gene), function(x) {
+  hits_ncbi <- which(df_gene[x,'target_organism'] == ncbi_sheets[,'assembly_ID'])
+  hits_insectBase <- which(df_gene[x,'target_organism'] == gsub(' ', '_',insectBase_sheets[,'Species.name']))
+  tmp_row <- list()
+  if (length(hits_ncbi > 0 & hits_insectBase > 0)) {
+    print("not supposed to happen")
+  }
+  if (length(hits_ncbi) == 1) {
+    tmp_row['organism_latin_name'] <- ncbi_sheets[hits_ncbi,'Species.name']
+    tmp_row['organism_english_name'] <- ncbi_sheets[hits_ncbi,'Public.name']
+    tmp_row['organism_family'] <- ncbi_sheets[hits_ncbi,'Family.name']
+    tmp_row['organism_subfamiliy'] <- ncbi_sheets[hits_ncbi,'Subfamily.name']
+  } else if (length(hits_ncbi) > 1) {
+    if (all(ncbi_sheets[hits_ncbi,'Species.name'] == ncbi_sheets[hits_ncbi[1],'Species.name']) &&
+        all(ncbi_sheets[hits_ncbi,'Public.name'] == ncbi_sheets[hits_ncbi[1],'Public.name']) &&
+        all(ncbi_sheets[hits_ncbi,'Family_name'] == ncbi_sheets[hits_ncbi[1],'Family.name']) &&
+        all(ncbi_sheets[hits_ncbi,'Subfamily_name'] == ncbi_sheets[hits_ncbi[1],'Subfamily.name'])){
+      tmp_row['organism_latin_name'] <- ncbi_sheets[hits_ncbi[1],'Species.name']
+      tmp_row['organism_english_name'] <- ncbi_sheets[hits_ncbi[1],'Public.name']
+      tmp_row['organism_family'] <- ncbi_sheets[hits_ncbi[1],'Family.name']
+      tmp_row['organism_subfamiliy'] <- ncbi_sheets[hits_ncbi[1],'Subfamily.name']
+    } else {
+      tmp_row['organism_latin_name'] <- paste(ncbi_sheets[hits_ncbi,'Species.name'], collapse = ';')
+      tmp_row['organism_english_name'] <- paste(ncbi_sheets[hits_ncbi,'Public.name'], collapse = ';')
+      tmp_row['organism_family'] <- paste(ncbi_sheets[hits_ncbi,'Family.name'], collapse = ';')
+      tmp_row['organism_subfamiliy'] <- paste(ncbi_sheets[hits_ncbi,'Subfamily.name'], collapse = ';')
+    }
+  } else if (length(hits_insectBase == 1)){
+    tmp_row['organism_latin_name'] <- insectBase_sheets[hits_insectBase,'Species.name']
+    tmp_row['organism_english_name'] <- insectBase_sheets[hits_insectBase,'Public.name']
+    tmp_row['organism_family'] <- insectBase_sheets[hits_insectBase,'Family.name']
+    tmp_row['organism_subfamiliy'] <- NA
+  } else if (length(hits_insectBase > 1)) {
+    if (all(insectBase_sheets[hits_insectBase,'Species.name'] == insectBase_sheets[hits_insectBase[1],'Species.name']) &&
+        all(insectBase_sheets[hits_insectBase,'Public.name'] == insectBase_sheets[hits_insectBase[1],'Public.name']) &&
+        all(insectBase_sheets[hits_insectBase,'Family.name'] == insectBase_sheets[hits_insectBase[1],'Family.name']) &&
+        all(insectBase_sheets[hits_insectBase,'Subfamily.name'] == insectBase_sheets[hits_insectBase[1],'Subfamily.name'])){
+      tmp_row['organism_latin_name'] <- insectBase_sheets[hits_insectBase[1],'Species.name']
+      tmp_row['organism_english_name'] <- insectBase_sheets[hits_insectBase[1],'Public.name']
+      tmp_row['organism_family'] <- insectBase_sheets[hits_insectBase[1],'Family.name']
+      tmp_row['organism_subfamiliy'] <- insectBase_sheets[hits_insectBase[1],'Subfamily.name']
+    } else {
+      tmp_row['organism_latin_name'] <- paste(insectBase_sheets[hits_insectBase,'Species.name'], collapse = ';')
+      tmp_row['organism_english_name'] <- paste(insectBase_sheets[hits_insectBase,'Public.name'], collapse = ';')
+      tmp_row['organism_family'] <- paste(insectBase_sheets[hits_insectBase,'Family.name'], collapse = ';')
+      tmp_row['organism_subfamiliy'] <- paste(insectBase_sheets[hits_insectBase,'Subfamily.name'], collapse = ';')
+    }
+  }
+  return(tmp_row)
+})
 
 
 
 
 
+df_gene[,c('organism_latin_name','organism_english_name','organism_family','organism_subfamiliy')] <- do.call(rbind, lapply(sheets_information,as.data.frame))
+
+
+
+write.table(df, file=paste(dir_output, 'results_ledprona_vs_', group, '.tsv',sep = ""), quote=FALSE, sep='\t', col.names = TRUE, row.names = FALSE)
+write.table(df_gene, file=paste(dir_output,'genes_ledprona_vs_', group, '.tsv',sep = ""), quote=FALSE, sep='\t', col.names = TRUE, row.names = FALSE)
